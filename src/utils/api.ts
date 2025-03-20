@@ -1,4 +1,3 @@
-
 // This is a placeholder for the actual API integration
 // In a real implementation, this would connect to PHP backend endpoints
 
@@ -171,6 +170,89 @@ const dummyData: DatabaseStructure = {
       level: "bendahara"
     }
   ]
+};
+
+// Interfaces for the data types
+export interface Student {
+  id: number;
+  nis: string;
+  nama: string;
+  kelas_id: number;
+  jurusan_id: number;
+  alamat: string;
+  telepon: string;
+}
+
+export interface FinancialData {
+  id: number;
+  tanggal: string;
+  jumlah: number;
+  keterangan: string;
+  pengguna_id: number;
+}
+
+export interface SppData {
+  id: number;
+  siswa_id: number;
+  tanggal: string;
+  bulan: string;
+  tahun: string;
+  jumlah: number;
+  status: string;
+  pengguna_id: number;
+}
+
+// Function to get monthly financial data for charts
+export const getMonthlySummary = async () => {
+  // This would be a GET request to PHP backend
+  // For now, we'll calculate this from our dummy data
+  
+  const currentYear = new Date().getFullYear().toString();
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  
+  // Calculate monthly income
+  const monthlyIncome = months.map((month, index) => {
+    const monthData = dummyData.pemasukan.filter(item => {
+      const itemDate = new Date(item.tanggal);
+      return itemDate.getMonth() === index && itemDate.getFullYear().toString() === currentYear;
+    });
+    
+    return {
+      name: month,
+      value: monthData.reduce((sum, item) => sum + item.jumlah, 0)
+    };
+  });
+  
+  // Calculate monthly expenses
+  const monthlyExpenses = months.map((month, index) => {
+    const monthData = dummyData.pengeluaran.filter(item => {
+      const itemDate = new Date(item.tanggal);
+      return itemDate.getMonth() === index && itemDate.getFullYear().toString() === currentYear;
+    });
+    
+    return {
+      name: month,
+      value: monthData.reduce((sum, item) => sum + item.jumlah, 0)
+    };
+  });
+  
+  // Calculate monthly SPP payments
+  const monthlySppPayments = months.map((month, index) => {
+    const monthData = dummyData.spp.filter(item => {
+      return item.bulan === month && item.tahun === currentYear && item.status === "Lunas";
+    });
+    
+    return {
+      name: month,
+      value: monthData.reduce((sum, item) => sum + item.jumlah, 0)
+    };
+  });
+  
+  return {
+    income: monthlyIncome,
+    expenses: monthlyExpenses,
+    spp: monthlySppPayments
+  };
 };
 
 // Simulated API functions that would connect to PHP backend

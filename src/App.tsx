@@ -11,7 +11,16 @@ import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,7 +45,7 @@ const App = () => {
                 />
               )}
             </AnimatePresence>
-            <main>
+            <main className="pt-16"> {/* Added padding to account for fixed header */}
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="*" element={<NotFound />} />
