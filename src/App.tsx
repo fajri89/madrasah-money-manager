@@ -9,6 +9,7 @@ import { AnimatePresence } from "framer-motion";
 import Header from "./components/Header";
 import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
+import MasterData from "./pages/MasterData";
 import NotFound from "./pages/NotFound";
 
 // Create a client
@@ -48,6 +49,7 @@ const App = () => {
             <main className="pt-16"> {/* Added padding to account for fixed header */}
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/master-data" element={<MasterData />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

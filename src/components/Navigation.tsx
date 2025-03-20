@@ -10,6 +10,7 @@ interface NavigationProps {
 
 const navigationItems = [
   { name: 'Dashboard', path: '/', icon: 'home' },
+  { name: 'Data Master', path: '/master-data', icon: 'database' },
   { name: 'Transaksi', path: '/transactions', icon: 'repeat' },
   { name: 'SPP Siswa', path: '/student-payments', icon: 'graduation-cap' },
   { name: 'Laporan', path: '/reports', icon: 'bar-chart' },
@@ -55,6 +56,9 @@ const Navigation = ({ isOpen, onClose }: NavigationProps) => {
     const icons: Record<string, JSX.Element> = {
       'home': (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      ),
+      'database': (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
       ),
       'repeat': (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m17 2 4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>

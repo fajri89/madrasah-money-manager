@@ -1,3 +1,4 @@
+
 // This is a placeholder for the actual API integration
 // In a real implementation, this would connect to PHP backend endpoints
 
@@ -299,7 +300,12 @@ export const api = {
     // This would connect to WhatsApp API in the PHP backend
     console.log(`Sending WhatsApp message to ${phoneNumber}: ${message}`);
     return { success: true, message: "Notifikasi berhasil dikirim" };
-  }
+  },
+
+  // Direct access to the data (for simplicity in this demo)
+  kelas: dummyData.kelas,
+  jurusan: dummyData.jurusan,
+  pengguna: dummyData.pengguna
 };
 
 // Format currency to Indonesian Rupiah
