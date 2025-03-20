@@ -11,6 +11,7 @@ import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
 import MasterData from "./pages/MasterData";
 import Finance from "./pages/Finance";
+import StudentPayment from "./pages/StudentPayment";
 import NotFound from "./pages/NotFound";
 
 // Create a client
@@ -52,6 +53,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/master-data" element={<MasterData />} />
                 <Route path="/finance" element={<Finance />} />
+                <Route path="/student-payment" element={<StudentPayment />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

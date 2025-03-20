@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { useMediaQuery } from '@/hooks/use-mobile';
 
 // Animation variants
 const menuVariants = {
@@ -28,8 +27,18 @@ const menuVariants = {
 // Navigation component
 const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const location = useLocation();
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [activeMenuItem, setActiveMenuItem] = useState(location.pathname);
+
+  // Update media query state when window resizes
+  useEffect(() => {
+    const updateMedia = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', updateMedia);
+    return () => window.removeEventListener('resize', updateMedia);
+  }, []);
 
   // Update active menu item when route changes
   useEffect(() => {
@@ -55,6 +64,7 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
     { path: '/', label: 'Dashboard' },
     { path: '/master-data', label: 'Data Master' },
     { path: '/finance', label: 'Pemasukan & Pengeluaran' },
+    { path: '/student-payment', label: 'SPP Siswa' },
     // Add more menu items as needed
   ];
 
