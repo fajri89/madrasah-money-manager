@@ -1,4 +1,3 @@
-
 // This is a placeholder for the actual API integration
 // In a real implementation, this would connect to PHP backend endpoints
 
