@@ -1,42 +1,14 @@
+import { useAuth } from '../../contexts/AuthContext'; // Sesuaikan path
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User, Settings } from "lucide-react";
-import { Link } from "react-router-dom";
+const UserProfile = ({ user }: { user: User }) => {
+  const { user: authUser } = useAuth(); // Ambil user dari AuthContext
 
-const UserProfile = () => {
-  const { user, logout } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-
-  if (!user) {
-    return null;
-  }
-
-  // Get initials from user name
   const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
+    // Logika inisial
   };
 
-  // Map role to display name
   const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "Administrator";
-      case "bendahara":
-        return "Bendahara";
-      case "kepala_sekolah":
-        return "Kepala Sekolah";
-      default:
-        return role;
-    }
+    // Logika role
   };
 
   return (
@@ -44,7 +16,7 @@ const UserProfile = () => {
       <DialogTrigger asChild>
         <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
           <Avatar className="h-8 w-8 bg-green-700 text-white">
-            <AvatarFallback>{getInitials(user.nama)}</AvatarFallback>
+            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
         </Button>
       </DialogTrigger>
@@ -54,42 +26,16 @@ const UserProfile = () => {
         </DialogHeader>
         <div className="flex flex-col items-center py-4 space-y-4">
           <Avatar className="h-20 w-20 bg-green-700 text-white text-xl">
-            <AvatarFallback>{getInitials(user.nama)}</AvatarFallback>
+            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
           <div className="text-center">
-            <h3 className="text-lg font-semibold">{user.nama}</h3>
-            <p className="text-sm text-gray-500">{getRoleDisplayName(user.level)}</p>
-          </div>
-          <div className="w-full pt-4 border-t flex flex-col gap-3">
-            <Button
-              variant="outline"
-              className="w-full flex items-center gap-2"
-              onClick={() => {
-                setIsOpen(false);
-              }}
-              asChild
-            >
-              <Link to="/profile">
-                <Settings size={16} />
-                <span>Pengaturan Akun</span>
-              </Link>
-            </Button>
-            <Button
-              variant="destructive"
-              className="w-full flex items-center gap-2"
-              onClick={() => {
-                setIsOpen(false);
-                logout();
-              }}
-            >
-              <LogOut size={16} />
-              <span>Logout</span>
-            </Button>
+            <p className="text-lg font-semibold">{user.name}</p>
+            <p className="text-sm text-gray-600">{getRoleDisplayName(user.role)}</p>
+            {/* Tambahkan username di sini */}
+            <p className="text-sm text-gray-600">Username: {authUser?.username || 'Belum login'}</p>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
-export default UserProfile;
