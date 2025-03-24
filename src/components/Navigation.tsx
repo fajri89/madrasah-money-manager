@@ -65,6 +65,7 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
     { path: '/master-data', label: 'Data Master' },
     { path: '/finance', label: 'Pemasukan & Pengeluaran' },
     { path: '/student-payment', label: 'SPP Siswa' },
+    { path: '/reports', label: 'Laporan' },
     // Add more menu items as needed
   ];
 
