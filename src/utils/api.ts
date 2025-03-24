@@ -158,8 +158,8 @@ const dummyData: DatabaseStructure = {
   pengguna: [
     {
       id: 1,
-      username: "admin",
-      password: "password123", // In real app, this would be hashed
+      username: "admin", // Updated username
+      password: "joeng18031989", // Updated password
       nama: "Administrator",
       level: "admin"
     },
