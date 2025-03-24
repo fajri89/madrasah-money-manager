@@ -6,13 +6,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { AuthProvider } from "./contexts/AuthContext";
 import Header from "./components/Header";
 import Navigation from "./components/Navigation";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import MasterData from "./pages/MasterData";
 import Finance from "./pages/Finance";
 import StudentPayment from "./pages/StudentPayment";
 import Reports from "./pages/Reports";
+import Login from "./pages/Login";
+import AccessDenied from "./pages/AccessDenied";
 import NotFound from "./pages/NotFound";
 
 // Create a client
@@ -39,27 +43,50 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="relative min-h-screen bg-background">
-            <Header onMenuToggle={toggleMenu} />
-            <AnimatePresence>
-              {menuOpen && (
-                <Navigation 
-                  isOpen={menuOpen} 
-                  onClose={() => setMenuOpen(false)} 
-                />
-              )}
-            </AnimatePresence>
-            <main className="pt-16"> {/* Added padding to account for fixed header */}
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/master-data" element={<MasterData />} />
-                <Route path="/finance" element={<Finance />} />
-                <Route path="/student-payment" element={<StudentPayment />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
+          <AuthProvider>
+            <div className="relative min-h-screen bg-background">
+              <Header onMenuToggle={toggleMenu} />
+              <AnimatePresence>
+                {menuOpen && (
+                  <Navigation 
+                    isOpen={menuOpen} 
+                    onClose={() => setMenuOpen(false)} 
+                  />
+                )}
+              </AnimatePresence>
+              <main className="pt-16"> {/* Added padding to account for fixed header */}
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/access-denied" element={<AccessDenied />} />
+                  
+                  {/* Protected routes for all authenticated users */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/" element={<Index />} />
+                  </Route>
+                  
+                  {/* Admin only routes */}
+                  <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                    <Route path="/master-data" element={<MasterData />} />
+                  </Route>
+                  
+                  {/* Admin and bendahara routes */}
+                  <Route element={<ProtectedRoute allowedRoles={['admin', 'bendahara']} />}>
+                    <Route path="/finance" element={<Finance />} />
+                    <Route path="/student-payment" element={<StudentPayment />} />
+                  </Route>
+                  
+                  {/* Admin and kepala_sekolah routes */}
+                  <Route element={<ProtectedRoute allowedRoles={['admin', 'kepala_sekolah']} />}>
+                    <Route path="/reports" element={<Reports />} />
+                  </Route>
+                  
+                  {/* Catch all route */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

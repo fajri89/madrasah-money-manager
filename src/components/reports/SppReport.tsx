@@ -1,229 +1,216 @@
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardFooter 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, formatRupiah, SppData } from "@/utils/api";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api, formatRupiah, formatDate } from "@/utils/api";
+import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { Download, FileText } from "lucide-react";
 
-interface SPPReportProps {
+interface SppReportProps {
   isReadOnly: boolean;
 }
 
-interface ExtendedSppData extends SppData {
-  siswa_nama?: string;
-  siswa_nis?: string;
-}
-
-const SppReport = ({ isReadOnly }: SPPReportProps) => {
-  const [sppData, setSppData] = useState<ExtendedSppData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState<string>("Januari");
-  const [selectedYear, setSelectedYear] = useState<string>("2023");
+const SppReport = ({ isReadOnly }: SppReportProps) => {
+  // State for filtering
+  const [month, setMonth] = useState<string>(new Date().toLocaleString('id-ID', { month: 'long' }));
+  const [year, setYear] = useState<string>(new Date().getFullYear().toString());
+  const [loading, setLoading] = useState<boolean>(false);
+  const [sppData, setSppData] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   
-  const months = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+  // Indonesian month names
+  const monthNames = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
   
-  const years = ["2022", "2023", "2024"];
+  // Years for select (last 5 years)
+  const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
 
-  useEffect(() => {
-    fetchSppData();
-  }, [selectedMonth, selectedYear]);
-
-  const fetchSppData = async () => {
+  // Load SPP data
+  const loadSppReport = async () => {
     setLoading(true);
     try {
-      // In a real app, this would filter based on the selected month on the backend
-      const allSpp = await api.getSpp();
-      const students = await api.getSiswa();
+      // Fetch payment and student data
+      const [sppRecords, studentRecords] = await Promise.all([
+        api.getSpp(),
+        api.getSiswa()
+      ]);
       
-      // Since we're using a simulated API, we'll filter on the client side
-      const filteredData = allSpp.filter(item => {
-        return item.bulan === selectedMonth && item.tahun === selectedYear && item.status === "Lunas";
-      });
+      // Filter SPP by selected month and year
+      const filteredSpp = sppRecords.filter(
+        (spp: any) => spp.bulan === month && spp.tahun === year
+      );
       
-      // Add student information to SPP records
-      const enhancedData = filteredData.map(sppItem => {
-        const student = students.find(s => s.id === sppItem.siswa_id);
+      // Combine with student data
+      const combinedData = filteredSpp.map((spp: any) => {
+        const student = studentRecords.find((s: any) => s.id === spp.siswa_id);
+        const className = api.kelas.find((k: any) => k.id === student?.kelas_id)?.nama || '';
+        
         return {
-          ...sppItem,
-          siswa_nama: student ? student.nama : "Tidak ditemukan",
-          siswa_nis: student ? student.nis : "N/A"
+          ...spp,
+          student: student ? { 
+            nama: student.nama,
+            nis: student.nis,
+            kelas: className
+          } : null
         };
       });
       
-      setSppData(enhancedData);
+      setSppData(combinedData);
+      setStudents(studentRecords);
     } catch (error) {
-      console.error("Error fetching SPP data:", error);
-      toast.error("Gagal memuat data SPP");
+      console.error("Error loading SPP report:", error);
+      toast.error("Gagal memuat data laporan SPP");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMonthChange = (value: string) => {
-    setSelectedMonth(value);
-  };
-
-  const handleYearChange = (value: string) => {
-    setSelectedYear(value);
-  };
-
+  // Calculate total SPP
   const totalSpp = sppData.reduce((sum, item) => sum + item.jumlah, 0);
-
+  
+  // Handle download report as Excel
   const handleDownloadExcel = () => {
-    // In a real app, this would call the PHP backend endpoint that generates an Excel file
-    toast.success("Mengunduh laporan Excel...");
-    console.log("Downloading Excel report for:", `${selectedMonth} ${selectedYear}`);
-    
-    // Simulate delay for demonstration
-    setTimeout(() => {
-      toast.success("Laporan Excel berhasil diunduh");
-    }, 1500);
+    // In a real app, this would call a PHP endpoint that generates Excel
+    toast.success("Laporan SPP berhasil diunduh dalam format Excel");
   };
-
-  const handleDownloadPDF = () => {
-    // In a real app, this would call the PHP backend endpoint that generates a PDF file
-    toast.success("Mengunduh laporan PDF...");
-    console.log("Downloading PDF report for:", `${selectedMonth} ${selectedYear}`);
-    
-    // Simulate delay for demonstration
-    setTimeout(() => {
-      toast.success("Laporan PDF berhasil diunduh");
-    }, 1500);
+  
+  // Handle download report as PDF
+  const handleDownloadPdf = () => {
+    // In a real app, this would call a PHP endpoint that generates PDF
+    toast.success("Laporan SPP berhasil diunduh dalam format PDF");
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <span>Laporan Pembayaran SPP Siswa</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="month-select">Bulan:</Label>
-                <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                  <SelectTrigger id="month-select" className="w-[150px]">
-                    <SelectValue placeholder="Pilih Bulan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month) => (
-                      <SelectItem key={month} value={month}>
-                        {month}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Label htmlFor="year-select">Tahun:</Label>
-                <Select value={selectedYear} onValueChange={handleYearChange}>
-                  <SelectTrigger id="year-select" className="w-[100px]">
-                    <SelectValue placeholder="Pilih Tahun" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="animate-spin h-8 w-8 border-4 border-green-700 rounded-full border-t-transparent"></div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">No</TableHead>
-                    <TableHead>NIS</TableHead>
-                    <TableHead>Nama Siswa</TableHead>
-                    <TableHead>Tanggal Bayar</TableHead>
-                    <TableHead className="text-right">Jumlah</TableHead>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Laporan Pembayaran SPP</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <Label htmlFor="month">Bulan</Label>
+            <Select
+              value={month}
+              onValueChange={setMonth}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih bulan" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthNames.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="year">Tahun</Label>
+            <Select
+              value={year}
+              onValueChange={setYear}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih tahun" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-end">
+            <Button onClick={loadSppReport} className="w-full">
+              Tampilkan
+            </Button>
+          </div>
+        </div>
+        
+        {/* Download buttons */}
+        {sppData.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Button variant="outline" onClick={handleDownloadExcel} className="flex gap-2">
+              <FileSpreadsheet size={16} />
+              <span>Download Excel</span>
+            </Button>
+            <Button variant="outline" onClick={handleDownloadPdf} className="flex gap-2">
+              <FileText size={16} />
+              <span>Download PDF</span>
+            </Button>
+          </div>
+        )}
+        
+        {/* SPP data table */}
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NIS</TableHead>
+                <TableHead>Nama Siswa</TableHead>
+                <TableHead>Kelas</TableHead>
+                <TableHead>Tanggal Bayar</TableHead>
+                <TableHead>Jumlah</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10">
+                    <div className="flex justify-center">
+                      <div className="animate-spin h-6 w-6 border-4 border-green-700 rounded-full border-t-transparent"></div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : sppData.length > 0 ? (
+                sppData.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>{payment.student?.nis || "-"}</TableCell>
+                    <TableCell>{payment.student?.nama || "-"}</TableCell>
+                    <TableCell>{payment.student?.kelas || "-"}</TableCell>
+                    <TableCell>{formatDate(payment.tanggal)}</TableCell>
+                    <TableCell>{formatRupiah(payment.jumlah)}</TableCell>
+                    <TableCell>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                        {payment.status}
+                      </span>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sppData.length > 0 ? (
-                    sppData.map((spp, index) => (
-                      <TableRow key={spp.id}>
-                        <TableCell className="font-medium">{index + 1}</TableCell>
-                        <TableCell>{spp.siswa_nis}</TableCell>
-                        <TableCell>{spp.siswa_nama}</TableCell>
-                        <TableCell>{formatDate(spp.tanggal)}</TableCell>
-                        <TableCell className="text-right">{formatRupiah(spp.jumlah)}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10 text-gray-500">
-                        Belum ada siswa yang membayar SPP pada bulan {selectedMonth} {selectedYear}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-gray-500">
+                    {loading ? "Memuat data..." : "Belum ada data pembayaran SPP untuk periode ini"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        
+        {/* Summary */}
+        {sppData.length > 0 && (
+          <div className="mt-6 border-t pt-4">
+            <div className="flex justify-between font-medium">
+              <span>Total Pembayaran SPP ({month} {year}):</span>
+              <span className="text-green-700">{formatRupiah(totalSpp)}</span>
             </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
-          <div className="font-bold text-lg">
-            Total: {formatRupiah(totalSpp)}
+            <div className="flex justify-between text-sm text-gray-500 mt-1">
+              <span>Jumlah Siswa Bayar:</span>
+              <span>{sppData.length} siswa</span>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleDownloadExcel} 
-              variant="outline" 
-              className="flex items-center gap-2"
-              disabled={loading || isReadOnly}
-            >
-              <FileText className="h-4 w-4" />
-              <span>Excel</span>
-            </Button>
-            <Button 
-              onClick={handleDownloadPDF} 
-              variant="default" 
-              className="flex items-center gap-2"
-              disabled={loading || isReadOnly}
-            >
-              <Download className="h-4 w-4" />
-              <span>PDF</span>
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
-    </motion.div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

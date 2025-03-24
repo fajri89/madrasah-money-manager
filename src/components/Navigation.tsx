@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, Home, Users, FileText, CreditCard, BarChart } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Animation variants
 const menuVariants = {
@@ -29,6 +30,7 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [activeMenuItem, setActiveMenuItem] = useState(location.pathname);
+  const { user, hasPermission } = useAuth();
 
   // Update media query state when window resizes
   useEffect(() => {
@@ -59,15 +61,48 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
     }
   }, [isMobile, isOpen, onClose]);
 
-  // Menu items
-  const menuItems = [
-    { path: '/', label: 'Dashboard' },
-    { path: '/master-data', label: 'Data Master' },
-    { path: '/finance', label: 'Pemasukan & Pengeluaran' },
-    { path: '/student-payment', label: 'SPP Siswa' },
-    { path: '/reports', label: 'Laporan' },
-    // Add more menu items as needed
-  ];
+  // Get role-based menu items
+  const getMenuItems = () => {
+    const allMenuItems = [
+      { 
+        path: '/', 
+        label: 'Dashboard', 
+        icon: <Home className="h-5 w-5 mr-3" />,
+        roles: ['admin', 'bendahara', 'kepala_sekolah'] 
+      },
+      { 
+        path: '/master-data', 
+        label: 'Data Master', 
+        icon: <Users className="h-5 w-5 mr-3" />,
+        roles: ['admin'] 
+      },
+      { 
+        path: '/finance', 
+        label: 'Pemasukan & Pengeluaran', 
+        icon: <FileText className="h-5 w-5 mr-3" />,
+        roles: ['admin', 'bendahara'] 
+      },
+      { 
+        path: '/student-payment', 
+        label: 'SPP Siswa', 
+        icon: <CreditCard className="h-5 w-5 mr-3" />,
+        roles: ['admin', 'bendahara'] 
+      },
+      { 
+        path: '/reports', 
+        label: 'Laporan', 
+        icon: <BarChart className="h-5 w-5 mr-3" />,
+        roles: ['admin', 'kepala_sekolah'] 
+      },
+    ];
+
+    // Filter menu items based on user role
+    return allMenuItems.filter(item => {
+      return hasPermission(item.roles);
+    });
+  };
+
+  const menuItems = getMenuItems();
 
   return (
     <motion.div
@@ -96,7 +131,7 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                 <Link
                   to={item.path}
                   className={`
-                    block px-4 py-3 rounded-lg transition-colors
+                    flex items-center px-4 py-3 rounded-lg transition-colors
                     ${activeMenuItem === item.path
                       ? 'bg-green-50 text-green-700 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -109,12 +144,23 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
                     }
                   }}
                 >
+                  {item.icon}
                   {item.label}
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
+        
+        {user && (
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="px-4 py-2">
+              <p className="text-xs text-gray-500">Logged in as</p>
+              <p className="font-medium">{user.nama}</p>
+              <p className="text-xs text-gray-500 capitalize">{user.level.replace('_', ' ')}</p>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );

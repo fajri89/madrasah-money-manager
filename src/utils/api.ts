@@ -168,6 +168,13 @@ const dummyData: DatabaseStructure = {
       password: "bendahara123", // In real app, this would be hashed
       nama: "Bendahara Sekolah",
       level: "bendahara"
+    },
+    {
+      id: 3,
+      username: "kepsek",
+      password: "kepsek123", // In real app, this would be hashed
+      nama: "Kepala Sekolah",
+      level: "kepala_sekolah"
     }
   ]
 };
