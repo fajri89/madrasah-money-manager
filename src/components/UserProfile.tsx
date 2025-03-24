@@ -1,14 +1,46 @@
+import React, { useState } from 'react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useAuth } from '../../contexts/AuthContext'; // Sesuaikan path
 
+// Define user interface (sesuaikan dengan AuthContext)
+interface User {
+  id: number;
+  username: string;
+  name: string;
+  role: string;
+}
+
 const UserProfile = ({ user }: { user: User }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const { user: authUser } = useAuth(); // Ambil user dari AuthContext
 
+  // Function to get initials from name
   const getInitials = (name: string) => {
-    // Logika inisial
+    const names = name.split(' ');
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
   };
 
+  // Map role to display name
   const getRoleDisplayName = (role: string) => {
-    // Logika role
+    switch (role) {
+      case 'admin':
+        return 'Administrator';
+      case 'bendahara':
+        return 'Bendahara';
+      case 'kepala_sekolah':
+        return 'Kepala Sekolah';
+      default:
+        return role;
+    }
   };
 
   return (
@@ -31,11 +63,15 @@ const UserProfile = ({ user }: { user: User }) => {
           <div className="text-center">
             <p className="text-lg font-semibold">{user.name}</p>
             <p className="text-sm text-gray-600">{getRoleDisplayName(user.role)}</p>
-            {/* Tambahkan username di sini */}
-            <p className="text-sm text-gray-600">Username: {authUser?.username || 'Belum login'}</p>
+            {/* Tampilkan username dari authUser */}
+            <p className="text-sm text-gray-600 font-medium">
+              Username: {authUser?.username || 'Belum login'}
+            </p>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default UserProfile;
