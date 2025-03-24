@@ -1,3 +1,4 @@
+
 // This is a placeholder for the actual API integration
 // In a real implementation, this would connect to PHP backend endpoints
 import { sendWhatsAppNotification } from "./whatsAppIntegration";
@@ -276,6 +277,52 @@ export const api = {
       return { success: true, user };
     }
     return { success: false, message: "Username atau password salah" };
+  },
+
+  // User management functions
+  updateUsername: async (userId: number, newUsername: string) => {
+    // In a real implementation, this would be a PUT request to update the user
+    console.log("Update username request", { userId, newUsername });
+    
+    // Check if username already exists
+    const usernameExists = dummyData.pengguna.some(
+      (u) => u.username === newUsername && u.id !== userId
+    );
+    
+    if (usernameExists) {
+      return { success: false, message: "Username sudah digunakan" };
+    }
+    
+    // Find the user to update
+    const userIndex = dummyData.pengguna.findIndex((u) => u.id === userId);
+    
+    if (userIndex === -1) {
+      return { success: false, message: "Pengguna tidak ditemukan" };
+    }
+    
+    // Update the username
+    dummyData.pengguna[userIndex].username = newUsername;
+    
+    return { success: true, message: "Username berhasil diubah" };
+  },
+  
+  updatePassword: async (userId: number, oldPassword: string, newPassword: string) => {
+    // In a real implementation, this would be a PUT request to update the password
+    console.log("Update password request", { userId, oldPassword: "***", newPassword: "***" });
+    
+    // Find the user and verify old password
+    const userIndex = dummyData.pengguna.findIndex(
+      (u) => u.id === userId && u.password === oldPassword
+    );
+    
+    if (userIndex === -1) {
+      return { success: false, message: "Password lama salah" };
+    }
+    
+    // Update the password
+    dummyData.pengguna[userIndex].password = newPassword;
+    
+    return { success: true, message: "Password berhasil diubah" };
   },
 
   // Financial functions

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const UserProfile = () => {
   const { user, logout } = useAuth();
@@ -59,7 +60,20 @@ const UserProfile = () => {
             <h3 className="text-lg font-semibold">{user.nama}</h3>
             <p className="text-sm text-gray-500">{getRoleDisplayName(user.level)}</p>
           </div>
-          <div className="w-full pt-4 border-t">
+          <div className="w-full pt-4 border-t flex flex-col gap-3">
+            <Button
+              variant="outline"
+              className="w-full flex items-center gap-2"
+              onClick={() => {
+                setIsOpen(false);
+              }}
+              asChild
+            >
+              <Link to="/profile">
+                <Settings size={16} />
+                <span>Pengaturan Akun</span>
+              </Link>
+            </Button>
             <Button
               variant="destructive"
               className="w-full flex items-center gap-2"

@@ -15,6 +15,7 @@ import MasterData from "./pages/MasterData";
 import Finance from "./pages/Finance";
 import StudentPayment from "./pages/StudentPayment";
 import Reports from "./pages/Reports";
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import AccessDenied from "./pages/AccessDenied";
 import NotFound from "./pages/NotFound";
@@ -63,6 +64,7 @@ const App = () => {
                   {/* Protected routes for all authenticated users */}
                   <Route element={<ProtectedRoute />}>
                     <Route path="/" element={<Index />} />
+                    <Route path="/profile" element={<Profile />} />
                   </Route>
                   
                   {/* Admin only routes */}
