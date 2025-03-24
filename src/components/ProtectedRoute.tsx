@@ -1,12 +1,22 @@
+
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
 }
 
 const ProtectedRoute = ({ allowedRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, hasPermission, loading } = useAuth();
+  const { isAuthenticated, hasPermission, loading, user } = useAuth();
+
+  useEffect(() => {
+    // Show a toast message if user doesn't have permission to view this page
+    if (!loading && isAuthenticated && allowedRoles.length > 0 && !hasPermission(allowedRoles)) {
+      toast.error(`Anda tidak memiliki akses untuk halaman ini. Dibutuhkan role: ${allowedRoles.join(", ")}`);
+    }
+  }, [loading, isAuthenticated, allowedRoles, hasPermission]);
 
   // Show loading indicator if still checking authentication
   if (loading) {

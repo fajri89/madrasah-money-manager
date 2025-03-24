@@ -1,5 +1,6 @@
 // This is a placeholder for the actual API integration
 // In a real implementation, this would connect to PHP backend endpoints
+import { sendWhatsAppNotification } from "./whatsAppIntegration";
 
 // Simulated database structure that would be on the PHP/MySQL backend
 export interface DatabaseStructure {
@@ -301,11 +302,10 @@ export const api = {
     return dummyData.sekolah[0];
   },
   
-  // WhatsApp integration placeholder
+  // WhatsApp integration 
   sendWhatsAppNotification: async (phoneNumber: string, message: string) => {
-    // This would connect to WhatsApp API in the PHP backend
-    console.log(`Sending WhatsApp message to ${phoneNumber}: ${message}`);
-    return { success: true, message: "Notifikasi berhasil dikirim" };
+    // Use our centralized WhatsApp service
+    return sendWhatsAppNotification(phoneNumber, message);
   },
 
   // Direct access to the data (for simplicity in this demo)

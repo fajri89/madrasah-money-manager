@@ -49,8 +49,13 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
           )}
           
           <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
-            <div className="font-bold text-green-700 text-lg md:text-xl">
-              Madrasah At-Tahzib
+            <div className="flex items-center">
+              <div className="w-8 h-8 mr-2 bg-green-700 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">MA</span>
+              </div>
+              <div className="font-bold text-green-700 text-lg md:text-xl">
+                Madrasah At-Tahzib
+              </div>
             </div>
           </div>
         </div>

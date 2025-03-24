@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { CalendarIcon, Send } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { api } from "@/utils/api";
+import { sendWhatsAppNotification, createNotificationMessages } from "@/utils/whatsAppIntegration";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,10 @@ const formSchema = z.object({
   }),
   jumlah: z.string().min(1, {
     message: "Masukkan jumlah pembayaran",
-  }),
+  }).refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    "Jumlah harus berupa angka positif"
+  ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -74,7 +78,7 @@ const StudentPaymentForm = () => {
   });
 
   // Get students on component mount
-  useState(() => {
+  useEffect(() => {
     const fetchStudents = async () => {
       try {
         const data = await api.getSiswa();
@@ -86,7 +90,7 @@ const StudentPaymentForm = () => {
     };
 
     fetchStudents();
-  });
+  }, []);
 
   // Handle student selection to get their phone number
   const handleStudentChange = (studentId: string) => {
@@ -135,21 +139,27 @@ const StudentPaymentForm = () => {
         (s) => s.id.toString() === data.siswa_id
       );
       const studentName = student ? student.nama : "Siswa";
+      const formattedDate = format(data.tanggal, "dd MMMM yyyy", { locale: id });
 
       // This would be a POST request to PHP backend in a real implementation
       // For now, we'll simulate it with our API utility
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
 
-      // Send WhatsApp notification to kepala sekolah
-      const message = `*Notifikasi Pembayaran SPP*\n\nNama: ${studentName}\nBulan: ${data.bulan} ${data.tahun}\nJumlah: Rp${parseInt(data.jumlah).toLocaleString('id-ID')}\nStatus: Lunas\nTanggal: ${format(data.tanggal, "dd MMMM yyyy", { locale: id })}`;
+      // Create notification messages using our utility
+      const messages = createNotificationMessages.sppPayment(
+        studentName,
+        data.bulan,
+        data.tahun,
+        parseInt(data.jumlah),
+        formattedDate
+      );
       
-      await api.sendWhatsAppNotification("081234567890", message); // To kepala sekolah
+      // Send WhatsApp notification to kepala sekolah
+      await sendWhatsAppNotification("081234567890", messages.toHeadmaster);
       
       // Send WhatsApp notification to parent if phone number is available
       if (studentPhone) {
-        const parentMessage = `*Konfirmasi Pembayaran SPP*\n\nYth. Wali dari ${studentName}\n\nPembayaran SPP untuk bulan ${data.bulan} ${data.tahun} telah kami terima dengan baik pada tanggal ${format(data.tanggal, "dd MMMM yyyy", { locale: id })}.\n\nTerima kasih.\n\nHormat kami,\nBendahara Madrasah At-Tahzib Kekait`;
-        
-        await api.sendWhatsAppNotification(studentPhone, parentMessage);
+        await sendWhatsAppNotification(studentPhone, messages.toParent);
       }
 
       // Show success notification

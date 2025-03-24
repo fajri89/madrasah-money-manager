@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
+import { sendWhatsAppNotification, createNotificationMessages } from "@/utils/whatsAppIntegration";
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -61,6 +61,7 @@ const ExpenseForm = () => {
       
       // Format the date as ISO string (YYYY-MM-DD)
       const formattedDate = format(values.tanggal, "yyyy-MM-dd");
+      const readableDate = format(values.tanggal, "dd MMMM yyyy");
       
       // In a real implementation, this would be a POST request to PHP backend
       // For now, we'll use our simulated API
@@ -78,9 +79,15 @@ const ExpenseForm = () => {
       });
       
       // After successful submission, send WhatsApp notification
-      await api.sendWhatsAppNotification(
+      const { toHeadmaster } = createNotificationMessages.expense(
+        numericAmount,
+        values.keterangan,
+        readableDate
+      );
+      
+      await sendWhatsAppNotification(
         "81234567890", // This would be the school principal's number in production
-        `Ada pengeluaran baru: ${values.keterangan} sebesar Rp${Number(values.jumlah).toLocaleString('id-ID')}`
+        toHeadmaster
       );
       
       // Show success message

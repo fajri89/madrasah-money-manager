@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { api, formatRupiah } from '@/utils/api';
@@ -17,6 +16,7 @@ interface Student {
   id: number;
   nis: string;
   nama: string;
+  telepon: string; // Added telepon property to fix the error
 }
 
 const StudentPayment = () => {
