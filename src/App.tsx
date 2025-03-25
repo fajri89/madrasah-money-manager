@@ -19,6 +19,7 @@ import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import AccessDenied from "./pages/AccessDenied";
 import NotFound from "./pages/NotFound";
+import UserManagementPage from "./pages/UserManagementPage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -70,6 +71,7 @@ const App = () => {
                   {/* Admin only routes */}
                   <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                     <Route path="/master-data" element={<MasterData />} />
+                    <Route path="/user-management" element={<UserManagementPage />} />
                   </Route>
                   
                   {/* Admin and bendahara routes */}

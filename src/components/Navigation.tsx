@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { X, Home, Users, FileText, CreditCard, BarChart } from 'lucide-react';
+import { X, Home, Users, FileText, CreditCard, BarChart, TrendingUp, TrendingDown, UserCog, Eye, Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Animation variants
@@ -63,43 +63,104 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 
   // Get role-based menu items
   const getMenuItems = () => {
-    const allMenuItems = [
+    const adminMenuItems = [
       { 
         path: '/', 
         label: 'Dashboard', 
         icon: <Home className="h-5 w-5 mr-3" />,
-        roles: ['admin', 'bendahara', 'kepala_sekolah'] 
       },
       { 
         path: '/master-data', 
         label: 'Data Master', 
         icon: <Users className="h-5 w-5 mr-3" />,
-        roles: ['admin'] 
       },
       { 
         path: '/finance', 
         label: 'Pemasukan & Pengeluaran', 
         icon: <FileText className="h-5 w-5 mr-3" />,
-        roles: ['admin', 'bendahara'] 
       },
       { 
         path: '/student-payment', 
         label: 'SPP Siswa', 
         icon: <CreditCard className="h-5 w-5 mr-3" />,
-        roles: ['admin', 'bendahara'] 
       },
       { 
         path: '/reports', 
         label: 'Laporan', 
         icon: <BarChart className="h-5 w-5 mr-3" />,
-        roles: ['admin', 'kepala_sekolah'] 
+      },
+      { 
+        path: '/user-management', 
+        label: 'Kelola Pengguna', 
+        icon: <UserCog className="h-5 w-5 mr-3" />,
       },
     ];
 
-    // Filter menu items based on user role
-    return allMenuItems.filter(item => {
-      return hasPermission(item.roles);
-    });
+    const bendaharaMenuItems = [
+      { 
+        path: '/', 
+        label: 'Dashboard', 
+        icon: <Home className="h-5 w-5 mr-3" />,
+      },
+      { 
+        path: '/student-payment', 
+        label: 'Input Pembayaran SPP', 
+        icon: <CreditCard className="h-5 w-5 mr-3" />,
+      },
+      { 
+        path: '/finance?tab=expense', 
+        label: 'Input Pengeluaran', 
+        icon: <TrendingDown className="h-5 w-5 mr-3" />,
+      },
+      { 
+        path: '/finance?tab=income', 
+        label: 'Input Pemasukan', 
+        icon: <TrendingUp className="h-5 w-5 mr-3" />,
+      },
+    ];
+
+    const kepalaSekolahMenuItems = [
+      { 
+        path: '/', 
+        label: 'Dashboard', 
+        icon: <Home className="h-5 w-5 mr-3" />,
+      },
+      { 
+        path: '/reports?tab=spp', 
+        label: 'Riwayat Pembayaran SPP', 
+        icon: <Eye className="h-5 w-5 mr-3" />,
+      },
+      { 
+        path: '/reports?tab=expense', 
+        label: 'Riwayat Pengeluaran', 
+        icon: <Eye className="h-5 w-5 mr-3" />,
+      },
+      { 
+        path: '/reports?tab=income', 
+        label: 'Riwayat Pemasukan', 
+        icon: <Eye className="h-5 w-5 mr-3" />,
+      },
+      { 
+        path: '/reports', 
+        label: 'Laporan Keuangan', 
+        icon: <Wallet className="h-5 w-5 mr-3" />,
+      },
+    ];
+
+    const siswaMenuItems = [
+      { 
+        path: '/', 
+        label: 'Dashboard', 
+        icon: <Home className="h-5 w-5 mr-3" />,
+      }
+    ];
+
+    if (!user) return [];
+
+    if (user.level === 'admin') return adminMenuItems;
+    if (user.level === 'bendahara') return bendaharaMenuItems;
+    if (user.level === 'kepala_sekolah') return kepalaSekolahMenuItems;
+    return siswaMenuItems;
   };
 
   const menuItems = getMenuItems();

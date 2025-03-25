@@ -70,6 +70,13 @@ const Login = () => {
     >
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-2">
+            <img 
+              src="/lovable-uploads/92470630-13a1-4bd5-87a7-ba11756720be.png" 
+              alt="Logo Madrasah Aliyah At-Tahzib Kekait" 
+              className="max-w-[150px] h-auto mx-auto pb-3"
+            />
+          </div>
           <CardTitle className="text-2xl font-bold text-green-700">Madrasah Aliyah At-Tahzib Kekait</CardTitle>
           <CardDescription>
             Sistem Informasi Keuangan Madrasah
