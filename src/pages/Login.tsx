@@ -72,7 +72,7 @@ const Login = () => {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
             <img 
-              src="/lovable-uploads/92470630-13a1-4bd5-87a7-ba11756720be.png" 
+              src="/lovable-uploads/ec06af05-0ccf-4881-b9fd-985fbd2d8ba3.png" 
               alt="Logo Madrasah Aliyah At-Tahzib Kekait" 
               className="max-w-[150px] h-auto mx-auto pb-3"
             />
