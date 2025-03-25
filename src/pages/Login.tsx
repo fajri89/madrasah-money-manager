@@ -70,7 +70,7 @@ const Login = () => {
     >
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold text-green-700">Madrasah At-Tahzib</CardTitle>
+          <CardTitle className="text-2xl font-bold text-green-700">Madrasah Aliyah At-Tahzib Kekait</CardTitle>
           <CardDescription>
             Sistem Informasi Keuangan Madrasah
           </CardDescription>

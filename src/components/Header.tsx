@@ -54,7 +54,7 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
                 <span className="text-white font-bold text-sm">MA</span>
               </div>
               <div className="font-bold text-green-700 text-lg md:text-xl">
-                Madrasah At-Tahzib
+                Madrasah Aliyah At-Tahzib Kekait
               </div>
             </div>
           </div>

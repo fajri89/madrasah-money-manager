@@ -122,7 +122,7 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
       </div>
 
       <div className="px-4 py-4">
-        <h2 className="text-xl font-bold text-green-700 mb-6">Madrasah At-Tahzib</h2>
+        <h2 className="text-xl font-bold text-green-700 mb-6">Madrasah Aliyah At-Tahzib Kekait</h2>
         
         <nav>
           <ul className="space-y-2">
