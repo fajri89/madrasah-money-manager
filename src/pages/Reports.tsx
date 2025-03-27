@@ -6,11 +6,18 @@ import { toast } from "sonner";
 import IncomeReport from "@/components/reports/IncomeReport";
 import ExpenseReport from "@/components/reports/ExpenseReport";
 import SppReport from "@/components/reports/SppReport";
+import { useLocation } from "react-router-dom";
 
 const Reports = () => {
   // Role-based access check
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Get the tab parameter from URL if any
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const tabParam = queryParams.get("tab");
+  const [activeTab, setActiveTab] = useState(tabParam || "income");
 
   useEffect(() => {
     const checkUserRole = () => {
@@ -26,6 +33,13 @@ const Reports = () => {
     // When the component mounts, scroll to top
     window.scrollTo(0, 0);
   }, []);
+
+  // Update active tab when URL query parameter changes
+  useEffect(() => {
+    if (tabParam && ["income", "expense", "spp"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   // If user doesn't have the "admin" or "kepala_sekolah" role, show access denied message
   if (!loading && userRole !== "admin" && userRole !== "kepala_sekolah") {
@@ -64,7 +78,7 @@ const Reports = () => {
           <div className="animate-spin h-8 w-8 border-4 border-green-700 rounded-full border-t-transparent"></div>
         </div>
       ) : (
-        <Tabs defaultValue="income" className="w-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="w-full">
           <TabsList className="w-full flex flex-wrap mb-6 h-auto">
             <TabsTrigger value="income" className="flex-1 py-2">Laporan Penerimaan</TabsTrigger>
             <TabsTrigger value="expense" className="flex-1 py-2">Laporan Pengeluaran</TabsTrigger>

@@ -21,7 +21,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, formatRupiah, formatDate, FinancialData } from "@/utils/api";
 import { toast } from "sonner";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Calendar } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import * as XLSX from 'xlsx';
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
 interface IncomeReportProps {
   isReadOnly: boolean;
@@ -30,9 +34,13 @@ interface IncomeReportProps {
 const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
   const [incomeData, setIncomeData] = useState<FinancialData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState<"month" | "year">("month");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const currentDate = new Date();
     return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [selectedYear, setSelectedYear] = useState<string>(() => {
+    return new Date().getFullYear().toString();
   });
   
   const months = [
@@ -52,10 +60,12 @@ const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
     { value: '2024-02', label: 'Februari 2024' },
     { value: '2024-03', label: 'Maret 2024' }
   ];
+  
+  const years = ['2023', '2024', '2025', '2026', '2027'];
 
   useEffect(() => {
     fetchIncomeData();
-  }, [selectedMonth]);
+  }, []);
 
   const fetchIncomeData = async () => {
     setLoading(true);
@@ -63,13 +73,25 @@ const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
       // In a real app, this would filter based on the selected month on the backend
       const income = await api.getPemasukan();
       
-      // Since we're using a simulated API, we'll filter on the client side
-      const [year, month] = selectedMonth.split('-').map(Number);
+      let filteredData;
       
-      const filteredData = income.filter(item => {
-        const itemDate = new Date(item.tanggal);
-        return itemDate.getFullYear() === year && itemDate.getMonth() + 1 === month;
-      });
+      if (filterType === "month") {
+        // Since we're using a simulated API, we'll filter on the client side
+        const [year, month] = selectedMonth.split('-').map(Number);
+        
+        filteredData = income.filter(item => {
+          const itemDate = new Date(item.tanggal);
+          return itemDate.getFullYear() === year && itemDate.getMonth() + 1 === month;
+        });
+      } else {
+        // Filter by year only
+        const year = Number(selectedYear);
+        
+        filteredData = income.filter(item => {
+          const itemDate = new Date(item.tanggal);
+          return itemDate.getFullYear() === year;
+        });
+      }
       
       setIncomeData(filteredData);
     } catch (error) {
@@ -83,29 +105,111 @@ const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
   const handleMonthChange = (value: string) => {
     setSelectedMonth(value);
   };
+  
+  const handleYearChange = (value: string) => {
+    setSelectedYear(value);
+  };
+  
+  const handleFilterTypeChange = (value: string) => {
+    if (value) {
+      setFilterType(value as "month" | "year");
+    }
+  };
 
   const totalIncome = incomeData.reduce((sum, item) => sum + item.jumlah, 0);
 
   const handleDownloadExcel = () => {
-    // In a real app, this would call the PHP backend endpoint that generates an Excel file
-    toast.success("Mengunduh laporan Excel...");
-    console.log("Downloading Excel report for:", selectedMonth);
-    
-    // Simulate delay for demonstration
-    setTimeout(() => {
+    try {
+      // Prepare data for Excel
+      const excelData = incomeData.map((income, index) => ({
+        No: index + 1,
+        Tanggal: formatDate(income.tanggal),
+        Keterangan: income.keterangan,
+        Jumlah: income.jumlah
+      }));
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Income Data");
+
+      // Generate filename
+      let fileName;
+      if (filterType === "month") {
+        const [year, month] = selectedMonth.split('-');
+        const monthLabel = months.find(m => m.value === selectedMonth)?.label.split(' ')[0] || `Bulan-${month}`;
+        fileName = `Laporan_Penerimaan_${monthLabel}_${year}.xlsx`;
+      } else {
+        fileName = `Laporan_Penerimaan_Tahun_${selectedYear}.xlsx`;
+      }
+
+      // Write and download the file
+      XLSX.writeFile(wb, fileName);
       toast.success("Laporan Excel berhasil diunduh");
-    }, 1500);
+    } catch (error) {
+      console.error("Error downloading Excel:", error);
+      toast.error("Gagal mengunduh file Excel");
+    }
   };
 
   const handleDownloadPDF = () => {
-    // In a real app, this would call the PHP backend endpoint that generates a PDF file
-    toast.success("Mengunduh laporan PDF...");
-    console.log("Downloading PDF report for:", selectedMonth);
-    
-    // Simulate delay for demonstration
-    setTimeout(() => {
+    try {
+      // Create new PDF document
+      const doc = new jsPDF();
+      
+      // Add title
+      let title;
+      if (filterType === "month") {
+        const [year, month] = selectedMonth.split('-');
+        const monthLabel = months.find(m => m.value === selectedMonth)?.label || `Bulan ${month}/${year}`;
+        title = `Laporan Penerimaan ${monthLabel}`;
+      } else {
+        title = `Laporan Penerimaan Tahun ${selectedYear}`;
+      }
+      
+      doc.setFontSize(16);
+      doc.text(title, 14, 20);
+      
+      // Prepare table data
+      const tableColumn = ["No", "Tanggal", "Keterangan", "Jumlah"];
+      const tableRows = incomeData.map((income, index) => [
+        index + 1,
+        formatDate(income.tanggal),
+        income.keterangan,
+        formatRupiah(income.jumlah).replace("Rp", "").trim()
+      ]);
+      
+      // Add table
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        theme: 'grid',
+        styles: { fontSize: 9 }
+      });
+      
+      // Add total
+      const finalY = (doc as any).lastAutoTable.finalY || 30;
+      doc.setFontSize(10);
+      doc.text(`Total Penerimaan: ${formatRupiah(totalIncome)}`, 14, finalY + 10);
+      
+      // Generate filename
+      let fileName;
+      if (filterType === "month") {
+        const [year, month] = selectedMonth.split('-');
+        const monthLabel = months.find(m => m.value === selectedMonth)?.label.split(' ')[0] || `Bulan-${month}`;
+        fileName = `Laporan_Penerimaan_${monthLabel}_${year}.pdf`;
+      } else {
+        fileName = `Laporan_Penerimaan_Tahun_${selectedYear}.pdf`;
+      }
+      
+      // Save the PDF
+      doc.save(fileName);
       toast.success("Laporan PDF berhasil diunduh");
-    }, 1500);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast.error("Gagal mengunduh file PDF");
+    }
   };
 
   return (
@@ -118,20 +222,57 @@ const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
         <CardHeader>
           <CardTitle className="text-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <span>Laporan Penerimaan Madrasah</span>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="month-select" className="whitespace-nowrap">Filter Bulan:</Label>
-              <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                <SelectTrigger id="month-select" className="w-[180px]">
-                  <SelectValue placeholder="Pilih Bulan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month) => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            
+            <div className="flex flex-col space-y-4">
+              <ToggleGroup type="single" value={filterType} onValueChange={handleFilterTypeChange} className="justify-start">
+                <ToggleGroupItem value="month" className="flex gap-2">
+                  <Calendar size={16} />
+                  <span>Bulanan</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="year" className="flex gap-2">
+                  <Calendar size={16} />
+                  <span>Tahunan</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              <div className="flex items-center gap-2">
+                {filterType === "month" ? (
+                  <>
+                    <Label htmlFor="month-select" className="whitespace-nowrap">Bulan:</Label>
+                    <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                      <SelectTrigger id="month-select" className="w-[180px]">
+                        <SelectValue placeholder="Pilih Bulan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month) => (
+                          <SelectItem key={month.value} value={month.value}>
+                            {month.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="year-select" className="whitespace-nowrap">Tahun:</Label>
+                    <Select value={selectedYear} onValueChange={handleYearChange}>
+                      <SelectTrigger id="year-select" className="w-[180px]">
+                        <SelectValue placeholder="Pilih Tahun" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+                <Button onClick={fetchIncomeData} size="sm">
+                  Tampilkan
+                </Button>
+              </div>
             </div>
           </CardTitle>
         </CardHeader>
@@ -164,7 +305,9 @@ const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-10 text-gray-500">
-                        Tidak ada data penerimaan pada bulan yang dipilih
+                        {filterType === "month" 
+                          ? "Tidak ada data penerimaan pada bulan yang dipilih"
+                          : "Tidak ada data penerimaan pada tahun yang dipilih"}
                       </TableCell>
                     </TableRow>
                   )}
@@ -182,7 +325,7 @@ const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
               onClick={handleDownloadExcel} 
               variant="outline" 
               className="flex items-center gap-2"
-              disabled={loading || isReadOnly}
+              disabled={loading || isReadOnly || incomeData.length === 0}
             >
               <FileText className="h-4 w-4" />
               <span>Excel</span>
@@ -191,7 +334,7 @@ const IncomeReport = ({ isReadOnly }: IncomeReportProps) => {
               onClick={handleDownloadPDF} 
               variant="default" 
               className="flex items-center gap-2"
-              disabled={loading || isReadOnly}
+              disabled={loading || isReadOnly || incomeData.length === 0}
             >
               <Download className="h-4 w-4" />
               <span>PDF</span>

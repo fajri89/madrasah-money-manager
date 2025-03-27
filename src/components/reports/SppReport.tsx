@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api, formatRupiah, formatDate } from "@/utils/api";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import * as XLSX from 'xlsx';
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
 interface SppReportProps {
   isReadOnly: boolean;
@@ -21,6 +25,7 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [sppData, setSppData] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [filterType, setFilterType] = useState<"month" | "year">("month");
   
   // Indonesian month names
   const monthNames = [
@@ -31,6 +36,11 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
   // Years for select (last 5 years)
   const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
 
+  // Load data when component mounts
+  useEffect(() => {
+    loadSppReport();
+  }, []);
+  
   // Load SPP data
   const loadSppReport = async () => {
     setLoading(true);
@@ -41,10 +51,19 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
         api.getSiswa()
       ]);
       
-      // Filter SPP by selected month and year
-      const filteredSpp = sppRecords.filter(
-        (spp: any) => spp.bulan === month && spp.tahun === year
-      );
+      let filteredSpp;
+      
+      if (filterType === "month") {
+        // Filter SPP by selected month and year
+        filteredSpp = sppRecords.filter(
+          (spp: any) => spp.bulan === month && spp.tahun === year
+        );
+      } else {
+        // Filter SPP by selected year only
+        filteredSpp = sppRecords.filter(
+          (spp: any) => spp.tahun === year
+        );
+      }
       
       // Combine with student data
       const combinedData = filteredSpp.map((spp: any) => {
@@ -76,14 +95,92 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
   
   // Handle download report as Excel
   const handleDownloadExcel = () => {
-    // In a real app, this would call a PHP endpoint that generates Excel
-    toast.success("Laporan SPP berhasil diunduh dalam format Excel");
+    try {
+      // Prepare data for Excel
+      const excelData = sppData.map((payment) => ({
+        NIS: payment.student?.nis || "-",
+        "Nama Siswa": payment.student?.nama || "-",
+        Kelas: payment.student?.kelas || "-",
+        "Tanggal Bayar": formatDate(payment.tanggal),
+        Bulan: payment.bulan,
+        Tahun: payment.tahun,
+        Jumlah: payment.jumlah,
+        Status: payment.status
+      }));
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "SPP Data");
+
+      // Generate file name
+      const fileName = filterType === "month" 
+        ? `Laporan_SPP_${month}_${year}.xlsx`
+        : `Laporan_SPP_Tahun_${year}.xlsx`;
+
+      // Write and download the file
+      XLSX.writeFile(wb, fileName);
+      toast.success("Laporan SPP berhasil diunduh dalam format Excel");
+    } catch (error) {
+      console.error("Error downloading Excel:", error);
+      toast.error("Gagal mengunduh file Excel");
+    }
   };
   
   // Handle download report as PDF
   const handleDownloadPdf = () => {
-    // In a real app, this would call a PHP endpoint that generates PDF
-    toast.success("Laporan SPP berhasil diunduh dalam format PDF");
+    try {
+      // Create new PDF document
+      const doc = new jsPDF();
+      
+      // Add title
+      const title = filterType === "month"
+        ? `Laporan SPP Bulan ${month} ${year}`
+        : `Laporan SPP Tahun ${year}`;
+      
+      doc.setFontSize(16);
+      doc.text(title, 14, 20);
+      
+      // Prepare table data
+      const tableColumn = ["NIS", "Nama Siswa", "Kelas", "Tanggal", "Jumlah", "Status"];
+      const tableRows = sppData.map((payment) => [
+        payment.student?.nis || "-",
+        payment.student?.nama || "-",
+        payment.student?.kelas || "-",
+        formatDate(payment.tanggal),
+        formatRupiah(payment.jumlah).replace("Rp", "").trim(),
+        payment.status
+      ]);
+      
+      // Add summary
+      doc.setFontSize(10);
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        columnStyles: { 0: { cellWidth: 25 } }
+      });
+      
+      // Add total
+      const finalY = (doc as any).lastAutoTable.finalY || 30;
+      doc.setFontSize(10);
+      doc.text(`Total Pembayaran: ${formatRupiah(totalSpp)}`, 14, finalY + 10);
+      doc.text(`Jumlah Siswa: ${sppData.length}`, 14, finalY + 15);
+      
+      // Generate file name
+      const fileName = filterType === "month" 
+        ? `Laporan_SPP_${month}_${year}.pdf`
+        : `Laporan_SPP_Tahun_${year}.pdf`;
+      
+      // Save the PDF
+      doc.save(fileName);
+      toast.success("Laporan SPP berhasil diunduh dalam format PDF");
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast.error("Gagal mengunduh file PDF");
+    }
   };
 
   return (
@@ -92,23 +189,39 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
         <CardTitle className="text-xl">Laporan Pembayaran SPP</CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="mb-6">
+          <Label htmlFor="filter-type" className="mb-2 block">Tipe Laporan</Label>
+          <ToggleGroup type="single" value={filterType} onValueChange={(value) => value && setFilterType(value as "month" | "year")} className="mb-4 justify-start">
+            <ToggleGroupItem value="month" className="flex gap-2">
+              <Calendar size={16} />
+              <span>Bulanan</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="year" className="flex gap-2">
+              <Calendar size={16} />
+              <span>Tahunan</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <Label htmlFor="month">Bulan</Label>
-            <Select
-              value={month}
-              onValueChange={setMonth}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih bulan" />
-              </SelectTrigger>
-              <SelectContent>
-                {monthNames.map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {filterType === "month" && (
+            <div>
+              <Label htmlFor="month">Bulan</Label>
+              <Select
+                value={month}
+                onValueChange={setMonth}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih bulan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthNames.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           
           <div>
             <Label htmlFor="year">Tahun</Label>
@@ -157,6 +270,7 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
                 <TableHead>Nama Siswa</TableHead>
                 <TableHead>Kelas</TableHead>
                 <TableHead>Tanggal Bayar</TableHead>
+                {filterType === "year" && <TableHead>Bulan</TableHead>}
                 <TableHead>Jumlah</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -164,7 +278,7 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
+                  <TableCell colSpan={filterType === "year" ? 7 : 6} className="text-center py-10">
                     <div className="flex justify-center">
                       <div className="animate-spin h-6 w-6 border-4 border-green-700 rounded-full border-t-transparent"></div>
                     </div>
@@ -177,6 +291,7 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
                     <TableCell>{payment.student?.nama || "-"}</TableCell>
                     <TableCell>{payment.student?.kelas || "-"}</TableCell>
                     <TableCell>{formatDate(payment.tanggal)}</TableCell>
+                    {filterType === "year" && <TableCell>{payment.bulan}</TableCell>}
                     <TableCell>{formatRupiah(payment.jumlah)}</TableCell>
                     <TableCell>
                       <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
@@ -187,8 +302,10 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-gray-500">
-                    {loading ? "Memuat data..." : "Belum ada data pembayaran SPP untuk periode ini"}
+                  <TableCell colSpan={filterType === "year" ? 7 : 6} className="text-center py-10 text-gray-500">
+                    {loading ? "Memuat data..." : filterType === "month" 
+                      ? "Belum ada data pembayaran SPP untuk bulan ini"
+                      : "Belum ada data pembayaran SPP untuk tahun ini"}
                   </TableCell>
                 </TableRow>
               )}
@@ -200,7 +317,7 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
         {sppData.length > 0 && (
           <div className="mt-6 border-t pt-4">
             <div className="flex justify-between font-medium">
-              <span>Total Pembayaran SPP ({month} {year}):</span>
+              <span>Total Pembayaran SPP: {filterType === "month" ? `(${month} ${year})` : `(Tahun ${year})`}</span>
               <span className="text-green-700">{formatRupiah(totalSpp)}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-500 mt-1">
