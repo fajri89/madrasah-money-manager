@@ -25,7 +25,8 @@ import { Download, FileText, Calendar } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import * as XLSX from 'xlsx';
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import 'jspdf-autotable';
+import { addReportHeader } from "@/utils/reportUtils";
 
 interface ExpenseReportProps {
   isReadOnly: boolean;
@@ -157,7 +158,7 @@ const ExpenseReport = ({ isReadOnly }: ExpenseReportProps) => {
       // Create new PDF document
       const doc = new jsPDF();
       
-      // Add title
+      // Add report title
       let title;
       if (filterType === "month") {
         const [year, month] = selectedMonth.split('-');
@@ -167,8 +168,8 @@ const ExpenseReport = ({ isReadOnly }: ExpenseReportProps) => {
         title = `Laporan Pengeluaran Tahun ${selectedYear}`;
       }
       
-      doc.setFontSize(16);
-      doc.text(title, 14, 20);
+      // Add header with logo
+      addReportHeader(doc, title);
       
       // Prepare table data
       const tableColumn = ["No", "Tanggal", "Keterangan", "Jumlah"];
@@ -183,13 +184,14 @@ const ExpenseReport = ({ isReadOnly }: ExpenseReportProps) => {
       doc.autoTable({
         head: [tableColumn],
         body: tableRows,
-        startY: 30,
+        startY: 50,
         theme: 'grid',
-        styles: { fontSize: 9 }
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [76, 175, 80] }
       });
       
       // Add total
-      const finalY = (doc as any).lastAutoTable.finalY || 30;
+      const finalY = doc.lastAutoTable.finalY || 50;
       doc.setFontSize(10);
       doc.text(`Total Pengeluaran: ${formatRupiah(totalExpense)}`, 14, finalY + 10);
       

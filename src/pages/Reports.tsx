@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import IncomeReport from "@/components/reports/IncomeReport";
 import ExpenseReport from "@/components/reports/ExpenseReport";
 import SppReport from "@/components/reports/SppReport";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Reports = () => {
   // Role-based access check
@@ -15,6 +15,7 @@ const Reports = () => {
   
   // Get the tab parameter from URL if any
   const location = useLocation();
+  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const tabParam = queryParams.get("tab");
   const [activeTab, setActiveTab] = useState(tabParam || "income");
@@ -40,6 +41,12 @@ const Reports = () => {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    navigate(`/reports?tab=${tab}`, { replace: true });
+  };
 
   // If user doesn't have the "admin" or "kepala_sekolah" role, show access denied message
   if (!loading && userRole !== "admin" && userRole !== "kepala_sekolah") {
@@ -78,7 +85,7 @@ const Reports = () => {
           <div className="animate-spin h-8 w-8 border-4 border-green-700 rounded-full border-t-transparent"></div>
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="w-full flex flex-wrap mb-6 h-auto">
             <TabsTrigger value="income" className="flex-1 py-2">Laporan Penerimaan</TabsTrigger>
             <TabsTrigger value="expense" className="flex-1 py-2">Laporan Pengeluaran</TabsTrigger>

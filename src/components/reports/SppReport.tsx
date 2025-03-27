@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,7 +10,8 @@ import { toast } from "sonner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import * as XLSX from 'xlsx';
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import 'jspdf-autotable';
+import { addReportHeader } from "@/utils/reportUtils";
 
 interface SppReportProps {
   isReadOnly: boolean;
@@ -138,8 +137,8 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
         ? `Laporan SPP Bulan ${month} ${year}`
         : `Laporan SPP Tahun ${year}`;
       
-      doc.setFontSize(16);
-      doc.text(title, 14, 20);
+      // Add header with logo
+      addReportHeader(doc, title);
       
       // Prepare table data
       const tableColumn = ["NIS", "Nama Siswa", "Kelas", "Tanggal", "Jumlah", "Status"];
@@ -153,18 +152,18 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
       ]);
       
       // Add summary
-      doc.setFontSize(10);
       doc.autoTable({
         head: [tableColumn],
         body: tableRows,
-        startY: 30,
+        startY: 50,
         theme: 'grid',
         styles: { fontSize: 8 },
-        columnStyles: { 0: { cellWidth: 25 } }
+        columnStyles: { 0: { cellWidth: 25 } },
+        headStyles: { fillColor: [76, 175, 80] }
       });
       
       // Add total
-      const finalY = (doc as any).lastAutoTable.finalY || 30;
+      const finalY = doc.lastAutoTable.finalY || 50;
       doc.setFontSize(10);
       doc.text(`Total Pembayaran: ${formatRupiah(totalSpp)}`, 14, finalY + 10);
       doc.text(`Jumlah Siswa: ${sppData.length}`, 14, finalY + 15);
