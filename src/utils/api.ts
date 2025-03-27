@@ -2,6 +2,18 @@
 // This is a placeholder for the actual API integration
 // In a real implementation, this would connect to PHP backend endpoints
 import { sendWhatsAppNotification } from "./whatsAppIntegration";
+import * as XLSX from 'xlsx';
+
+// Get data from localStorage or use defaults
+const getLocalStorage = <T>(key: string, defaultValue: T): T => {
+  const storedData = localStorage.getItem(key);
+  return storedData ? JSON.parse(storedData) : defaultValue;
+};
+
+// Save data to localStorage
+const saveToLocalStorage = <T>(key: string, data: T): void => {
+  localStorage.setItem(key, JSON.stringify(data));
+};
 
 // Simulated database structure that would be on the PHP/MySQL backend
 export interface DatabaseStructure {
@@ -62,8 +74,8 @@ export interface DatabaseStructure {
   }[];
 }
 
-// Placeholder data that would come from the PHP/MySQL backend
-const dummyData: DatabaseStructure = {
+// Default data to use if nothing in localStorage
+const defaultData: DatabaseStructure = {
   sekolah: [
     {
       id: 1,
@@ -159,26 +171,38 @@ const dummyData: DatabaseStructure = {
   pengguna: [
     {
       id: 1,
-      username: "admin", // Updated username
-      password: "joeng18031989", // Updated password
+      username: "admin", 
+      password: "joeng18031989",
       nama: "Administrator",
       level: "admin"
     },
     {
       id: 2,
       username: "bendahara",
-      password: "bendahara123", // In real app, this would be hashed
+      password: "bendahara123",
       nama: "Bendahara Sekolah",
       level: "bendahara"
     },
     {
       id: 3,
       username: "kepsek",
-      password: "kepsek123", // In real app, this would be hashed
+      password: "kepsek123",
       nama: "Kepala Sekolah",
       level: "kepala_sekolah"
     }
   ]
+};
+
+// Initialize database from localStorage or defaults
+const dummyData: DatabaseStructure = {
+  sekolah: getLocalStorage('sekolah', defaultData.sekolah),
+  siswa: getLocalStorage('siswa', defaultData.siswa),
+  kelas: getLocalStorage('kelas', defaultData.kelas),
+  jurusan: getLocalStorage('jurusan', defaultData.jurusan),
+  pemasukan: getLocalStorage('pemasukan', defaultData.pemasukan),
+  pengeluaran: getLocalStorage('pengeluaran', defaultData.pengeluaran),
+  spp: getLocalStorage('spp', defaultData.spp),
+  pengguna: getLocalStorage('pengguna', defaultData.pengguna)
 };
 
 // Interfaces for the data types
@@ -344,9 +368,112 @@ export const api = {
     return dummyData.siswa;
   },
   
+  saveSiswa: async (students: Student[]) => {
+    dummyData.siswa = students;
+    saveToLocalStorage('siswa', students);
+    return { success: true, message: "Data siswa berhasil disimpan" };
+  },
+  
   // School info
   getSekolahInfo: async () => {
     return dummyData.sekolah[0];
+  },
+  
+  saveSekolahInfo: async (data: DatabaseStructure['sekolah'][0]) => {
+    dummyData.sekolah[0] = data;
+    saveToLocalStorage('sekolah', dummyData.sekolah);
+    return { success: true, message: "Data sekolah berhasil disimpan" };
+  },
+  
+  // Class (Kelas) functions
+  saveKelas: async (classes: DatabaseStructure['kelas']) => {
+    dummyData.kelas = classes;
+    saveToLocalStorage('kelas', classes);
+    return { success: true, message: "Data kelas berhasil disimpan" };
+  },
+  
+  // Department (Jurusan) functions
+  saveJurusan: async (departments: DatabaseStructure['jurusan']) => {
+    dummyData.jurusan = departments;
+    saveToLocalStorage('jurusan', departments);
+    return { success: true, message: "Data jurusan berhasil disimpan" };
+  },
+  
+  // Excel import function
+  importExcel: async (file: File): Promise<{success: boolean; message: string; data?: Student[]}> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          // Get first sheet
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Convert to JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          
+          // Validate structure
+          if (jsonData.length === 0) {
+            resolve({ success: false, message: "File Excel kosong" });
+            return;
+          }
+          
+          // Map data to Student format
+          const students: Student[] = [];
+          const errors: string[] = [];
+          
+          jsonData.forEach((row: any, index) => {
+            // Validate required fields
+            if (!row.nis || !row.nama || !row.kelas_id || !row.jurusan_id) {
+              errors.push(`Data pada baris ${index + 2} tidak lengkap`);
+              return;
+            }
+            
+            students.push({
+              id: Math.max(0, ...dummyData.siswa.map(s => s.id)) + 1 + index,
+              nis: row.nis.toString(),
+              nama: row.nama,
+              kelas_id: parseInt(row.kelas_id),
+              jurusan_id: parseInt(row.jurusan_id),
+              alamat: row.alamat || "",
+              telepon: row.telepon || ""
+            });
+          });
+          
+          if (errors.length > 0) {
+            resolve({ 
+              success: false, 
+              message: `Terdapat ${errors.length} kesalahan:\n${errors.join('\n')}` 
+            });
+            return;
+          }
+          
+          // Add to existing students
+          const updatedStudents = [...dummyData.siswa, ...students];
+          dummyData.siswa = updatedStudents;
+          saveToLocalStorage('siswa', updatedStudents);
+          
+          resolve({ 
+            success: true, 
+            message: `${students.length} data siswa berhasil diimpor`, 
+            data: students 
+          });
+        } catch (error) {
+          console.error("Error parsing Excel:", error);
+          resolve({ success: false, message: "Format file tidak valid" });
+        }
+      };
+      
+      reader.onerror = () => {
+        resolve({ success: false, message: "Gagal membaca file" });
+      };
+      
+      reader.readAsArrayBuffer(file);
+    });
   },
   
   // WhatsApp integration 

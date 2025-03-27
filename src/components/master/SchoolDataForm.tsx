@@ -49,13 +49,26 @@ const SchoolDataForm = () => {
   const onSubmit = async (data: SchoolFormData) => {
     setIsLoading(true);
     
-    // In a real app, this would update the data in the database
-    // For now, we'll just simulate a successful update
-    setTimeout(() => {
-      setSchoolData(data);
+    try {
+      // Save to API/localStorage
+      await api.saveSekolahInfo({
+        ...schoolData,
+        ...data,
+        id: schoolData?.id || 1
+      });
+      
+      setSchoolData({
+        ...schoolData,
+        ...data
+      } as SchoolFormData);
+      
       toast.success("Data sekolah berhasil diperbarui");
+    } catch (error) {
+      console.error("Error saving school data:", error);
+      toast.error("Gagal menyimpan data sekolah");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
   
   return (

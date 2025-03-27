@@ -68,21 +68,30 @@ const DepartmentDataTable = () => {
     setIsDialogOpen(true);
   };
   
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus jurusan ini?")) {
-      // In a real app, this would delete from the database
-      // For now, we'll just remove from the local state
-      setDepartments(departments.filter(d => d.id !== id));
-      toast.success("Jurusan berhasil dihapus");
+      const updatedDepartments = departments.filter(d => d.id !== id);
+      
+      try {
+        // Save to API/localStorage
+        await api.saveJurusan(updatedDepartments);
+        setDepartments(updatedDepartments);
+        toast.success("Jurusan berhasil dihapus");
+      } catch (error) {
+        console.error("Error deleting department:", error);
+        toast.error("Gagal menghapus jurusan");
+      }
     }
   };
   
-  const onSubmit = (data: DepartmentFormData) => {
+  const onSubmit = async (data: DepartmentFormData) => {
+    let updatedDepartments: DepartmentData[];
+    
     if (selectedDepartment) {
       // Edit existing department
-      setDepartments(departments.map(d => 
+      updatedDepartments = departments.map(d => 
         d.id === selectedDepartment.id ? { ...data, id: selectedDepartment.id } as DepartmentData : d
-      ));
+      );
       toast.success("Jurusan berhasil diperbarui");
     } else {
       // Add new department
@@ -90,8 +99,17 @@ const DepartmentDataTable = () => {
         ...data,
         id: Math.max(0, ...departments.map(d => d.id)) + 1
       } as DepartmentData;
-      setDepartments([...departments, newDepartment]);
+      updatedDepartments = [...departments, newDepartment];
       toast.success("Jurusan berhasil ditambahkan");
+    }
+    
+    try {
+      // Save to API/localStorage
+      await api.saveJurusan(updatedDepartments);
+      setDepartments(updatedDepartments);
+    } catch (error) {
+      console.error("Error saving department data:", error);
+      toast.error("Gagal menyimpan data jurusan");
     }
     
     setIsDialogOpen(false);

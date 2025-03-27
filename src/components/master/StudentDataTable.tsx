@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Edit, Trash2, Plus, Search } from "lucide-react";
+import { Edit, Trash2, Plus, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { api, Student } from "@/utils/api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface StudentFormData {
   id?: number;
@@ -28,8 +29,11 @@ const StudentDataTable = () => {
   const [departments, setDepartments] = useState<{id: number, nama: string}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   
   const form = useForm<StudentFormData>({
     defaultValues: {
@@ -92,21 +96,30 @@ const StudentDataTable = () => {
     setIsDialogOpen(true);
   };
   
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus data siswa ini?")) {
-      // In a real app, this would delete from the database
-      // For now, we'll just remove from the local state
-      setStudents(students.filter(student => student.id !== id));
-      toast.success("Data siswa berhasil dihapus");
+      const updatedStudents = students.filter(student => student.id !== id);
+      
+      try {
+        // Save to API/localStorage
+        await api.saveSiswa(updatedStudents);
+        setStudents(updatedStudents);
+        toast.success("Data siswa berhasil dihapus");
+      } catch (error) {
+        console.error("Error deleting student:", error);
+        toast.error("Gagal menghapus data siswa");
+      }
     }
   };
   
-  const onSubmit = (data: StudentFormData) => {
+  const onSubmit = async (data: StudentFormData) => {
+    let updatedStudents: Student[];
+    
     if (selectedStudent) {
       // Edit existing student
-      setStudents(students.map(s => 
+      updatedStudents = students.map(s => 
         s.id === selectedStudent.id ? { ...data, id: selectedStudent.id } as Student : s
-      ));
+      );
       toast.success("Data siswa berhasil diperbarui");
     } else {
       // Add new student
@@ -114,11 +127,55 @@ const StudentDataTable = () => {
         ...data,
         id: Math.max(0, ...students.map(s => s.id)) + 1
       } as Student;
-      setStudents([...students, newStudent]);
+      updatedStudents = [...students, newStudent];
       toast.success("Data siswa berhasil ditambahkan");
     }
     
+    try {
+      // Save to API/localStorage
+      await api.saveSiswa(updatedStudents);
+      setStudents(updatedStudents);
+    } catch (error) {
+      console.error("Error saving student data:", error);
+      toast.error("Gagal menyimpan data siswa");
+    }
+    
     setIsDialogOpen(false);
+  };
+  
+  const handleImportExcel = async () => {
+    if (!importFile) {
+      setImportError("Pilih file terlebih dahulu");
+      return;
+    }
+    
+    if (!importFile.name.endsWith('.xlsx')) {
+      setImportError("File harus berformat .xlsx");
+      return;
+    }
+    
+    setIsLoading(true);
+    setImportError(null);
+    
+    try {
+      const result = await api.importExcel(importFile);
+      
+      if (result.success) {
+        toast.success(result.message);
+        // Reload students data
+        const updatedStudents = await api.getSiswa();
+        setStudents(updatedStudents);
+        setIsImportDialogOpen(false);
+        setImportFile(null);
+      } else {
+        setImportError(result.message);
+      }
+    } catch (error) {
+      console.error("Error importing Excel:", error);
+      setImportError("Terjadi kesalahan saat mengimpor data");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Filter students based on search query
@@ -135,12 +192,21 @@ const StudentDataTable = () => {
         <CardTitle className="text-xl font-bold text-green-700">
           Data Siswa
         </CardTitle>
-        <Button 
-          onClick={() => handleAddEdit()} 
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="h-4 w-4 mr-2" /> Tambah Siswa
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsImportDialogOpen(true)}
+            variant="outline"
+            className="border-green-600 text-green-600 hover:bg-green-50"
+          >
+            <Upload className="h-4 w-4 mr-2" /> Import Excel
+          </Button>
+          <Button 
+            onClick={() => handleAddEdit()} 
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-2" /> Tambah Siswa
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="mb-4 relative">
@@ -215,6 +281,7 @@ const StudentDataTable = () => {
           </Table>
         </div>
         
+        {/* Student Form Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -262,7 +329,7 @@ const StudentDataTable = () => {
                         <FormLabel>Kelas</FormLabel>
                         <Select 
                           onValueChange={(value) => field.onChange(parseInt(value))}
-                          defaultValue={field.value.toString()}
+                          value={field.value.toString()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -290,7 +357,7 @@ const StudentDataTable = () => {
                         <FormLabel>Jurusan</FormLabel>
                         <Select 
                           onValueChange={(value) => field.onChange(parseInt(value))}
-                          defaultValue={field.value.toString()}
+                          value={field.value.toString()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -353,6 +420,58 @@ const StudentDataTable = () => {
                 </div>
               </form>
             </Form>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Import Excel Dialog */}
+        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Import Data Siswa dari Excel</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <FormLabel>File Excel (.xlsx)</FormLabel>
+                <Input 
+                  type="file" 
+                  accept=".xlsx" 
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                />
+                <p className="text-xs text-gray-500">
+                  Format kolom: nis, nama, kelas_id, jurusan_id, alamat, telepon
+                </p>
+              </div>
+              
+              {importError && (
+                <Alert variant="destructive">
+                  <AlertDescription className="whitespace-pre-line">
+                    {importError}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsImportDialogOpen(false);
+                    setImportFile(null);
+                    setImportError(null);
+                  }}
+                >
+                  Batal
+                </Button>
+                <Button 
+                  onClick={handleImportExcel} 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Memproses..." : "Import"}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </CardContent>

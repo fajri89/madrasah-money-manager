@@ -68,21 +68,30 @@ const ClassDataTable = () => {
     setIsDialogOpen(true);
   };
   
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus kelas ini?")) {
-      // In a real app, this would delete from the database
-      // For now, we'll just remove from the local state
-      setClasses(classes.filter(c => c.id !== id));
-      toast.success("Kelas berhasil dihapus");
+      const updatedClasses = classes.filter(c => c.id !== id);
+      
+      try {
+        // Save to API/localStorage
+        await api.saveKelas(updatedClasses);
+        setClasses(updatedClasses);
+        toast.success("Kelas berhasil dihapus");
+      } catch (error) {
+        console.error("Error deleting class:", error);
+        toast.error("Gagal menghapus kelas");
+      }
     }
   };
   
-  const onSubmit = (data: ClassFormData) => {
+  const onSubmit = async (data: ClassFormData) => {
+    let updatedClasses: ClassData[];
+    
     if (selectedClass) {
       // Edit existing class
-      setClasses(classes.map(c => 
+      updatedClasses = classes.map(c => 
         c.id === selectedClass.id ? { ...data, id: selectedClass.id } as ClassData : c
-      ));
+      );
       toast.success("Kelas berhasil diperbarui");
     } else {
       // Add new class
@@ -90,8 +99,17 @@ const ClassDataTable = () => {
         ...data,
         id: Math.max(0, ...classes.map(c => c.id)) + 1
       } as ClassData;
-      setClasses([...classes, newClass]);
+      updatedClasses = [...classes, newClass];
       toast.success("Kelas berhasil ditambahkan");
+    }
+    
+    try {
+      // Save to API/localStorage
+      await api.saveKelas(updatedClasses);
+      setClasses(updatedClasses);
+    } catch (error) {
+      console.error("Error saving class data:", error);
+      toast.error("Gagal menyimpan data kelas");
     }
     
     setIsDialogOpen(false);

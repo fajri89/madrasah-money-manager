@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { X, Home, Users, FileText, CreditCard, BarChart, TrendingUp, TrendingDown, UserCog, Eye, Wallet } from 'lucide-react';
@@ -31,7 +31,8 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [activeMenuItem, setActiveMenuItem] = useState(location.pathname);
   const { user, hasPermission } = useAuth();
-
+  const navRef = useRef<HTMLDivElement>(null);
+  
   // Update media query state when window resizes
   useEffect(() => {
     const updateMedia = () => {
@@ -60,6 +61,20 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
       };
     }
   }, [isMobile, isOpen, onClose]);
+  
+  // Handle clicking outside the sidebar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isOpen && navRef.current && !navRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
 
   // Get role-based menu items
   const getMenuItems = () => {
@@ -167,6 +182,7 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 
   return (
     <motion.div
+      ref={navRef}
       className="fixed top-0 left-0 z-40 h-full w-64 bg-white shadow-lg pt-16"
       initial="closed"
       animate={isOpen ? 'open' : 'closed'}
