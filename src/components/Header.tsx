@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UserProfile from './UserProfile';
@@ -14,6 +14,10 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if current route is login page
+  const isLoginPage = location.pathname === '/login';
 
   // Add scroll event listener
   useEffect(() => {
@@ -64,14 +68,17 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
           {isAuthenticated ? (
             <UserProfile />
           ) : (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/login')}
-              className="text-green-700 border-green-700 hover:bg-green-50"
-            >
-              Login
-            </Button>
+            // Only show the Login button if not on the login page
+            !isLoginPage && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/login')}
+                className="text-green-700 border-green-700 hover:bg-green-50"
+              >
+                Login
+              </Button>
+            )
           )}
         </div>
       </div>
