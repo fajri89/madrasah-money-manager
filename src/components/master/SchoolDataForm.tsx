@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
 interface SchoolFormData {
+  id?: number; // Make id optional as it might not exist when creating new school data
   nama: string;
   alamat: string;
   telepon: string;
@@ -30,6 +31,7 @@ const SchoolDataForm = () => {
         setSchoolData(data);
         // Set form values
         reset({
+          id: data.id,
           nama: data.nama,
           alamat: data.alamat,
           telepon: data.telepon,

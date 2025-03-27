@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -20,11 +20,29 @@ const MasterData = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // When the component mounts, scroll to top
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Trigger file input click when Import button is clicked
+  const handleImportButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle file selection
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    if (file) {
+      setImportFile(file);
+      setImportError(null);
+      setImportSuccess(null);
+    }
+  };
 
   const handleImport = async () => {
     if (!importFile) {
@@ -47,6 +65,10 @@ const MasterData = () => {
         setImportSuccess(result.message);
         setImportFile(null);
         toast.success(result.message);
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       } else {
         setImportError(result.message);
       }
@@ -104,18 +126,32 @@ const MasterData = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Hidden file input */}
+              <input 
+                type="file"
+                ref={fileInputRef}
+                accept=".xlsx" 
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+              
               <div className="space-y-2">
-                <Label htmlFor="excelFile">File Excel (.xlsx)</Label>
-                <Input 
-                  id="excelFile"
-                  type="file" 
-                  accept=".xlsx" 
-                  onChange={(e) => {
-                    setImportFile(e.target.files?.[0] || null);
-                    setImportError(null);
-                    setImportSuccess(null);
-                  }}
-                />
+                <Label htmlFor="excelFileDisplay">File Excel (.xlsx)</Label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    id="excelFileDisplay"
+                    disabled
+                    value={importFile?.name || ""}
+                    placeholder="Pilih file Excel yang berisi data siswa"
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleImportButtonClick}
+                    variant="outline"
+                  >
+                    Pilih File
+                  </Button>
+                </div>
                 <p className="text-sm text-gray-500">
                   Pilih file Excel yang berisi data siswa untuk diimpor
                 </p>

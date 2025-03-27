@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Edit, Trash2, Plus, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,7 @@ const StudentDataTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const form = useForm<StudentFormData>({
     defaultValues: {
@@ -143,6 +143,22 @@ const StudentDataTable = () => {
     setIsDialogOpen(false);
   };
   
+  // Trigger file input click when Import Excel button is clicked
+  const handleImportButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // Handle file selection
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    if (file) {
+      setImportFile(file);
+      setIsImportDialogOpen(true);
+    }
+  };
+  
   const handleImportExcel = async () => {
     if (!importFile) {
       setImportError("Pilih file terlebih dahulu");
@@ -167,6 +183,10 @@ const StudentDataTable = () => {
         setStudents(updatedStudents);
         setIsImportDialogOpen(false);
         setImportFile(null);
+        // Clear file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       } else {
         setImportError(result.message);
       }
@@ -193,8 +213,16 @@ const StudentDataTable = () => {
           Data Siswa
         </CardTitle>
         <div className="flex gap-2">
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".xlsx"
+            style={{ display: 'none' }}
+          />
           <Button 
-            onClick={() => setIsImportDialogOpen(true)}
+            onClick={handleImportButtonClick}
             variant="outline"
             className="border-green-600 text-green-600 hover:bg-green-50"
           >
@@ -433,11 +461,20 @@ const StudentDataTable = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <FormLabel>File Excel (.xlsx)</FormLabel>
-                <Input 
-                  type="file" 
-                  accept=".xlsx" 
-                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                />
+                <div className="flex items-center gap-2">
+                  <Input 
+                    disabled
+                    value={importFile?.name || ""}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleImportButtonClick}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Ganti File
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-500">
                   Format kolom: nis, nama, kelas_id, jurusan_id, alamat, telepon
                 </p>
