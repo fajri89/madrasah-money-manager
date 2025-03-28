@@ -58,8 +58,10 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
               alt="Logo Madrasah Aliyah At-Tahzib Kekait" 
               className="h-10 w-auto mr-3"
             />
-            <div className="font-medium text-green-700 text-lg md:text-xl">
-              Madrasah Aliyah At-Tahzib Kekait
+            <div className="lg:text-scroll-container overflow-hidden">
+              <div className="font-medium text-green-700 text-sm sm:text-base lg:text-lg xl:text-xl whitespace-nowrap lg:text-scroll">
+                Madrasah Aliyah At-Tahzib Kekait
+              </div>
             </div>
           </div>
         </div>

@@ -114,6 +114,30 @@
   .slide-in-bottom {
     animation: slideInBottom 0.5s ease-out forwards;
   }
+  
+  /* Text scrolling animation for desktop */
+  .text-scroll {
+    display: inline-block;
+    white-space: nowrap;
+    animation: textScroll 15s linear infinite;
+    padding-left: 100%;
+  }
+  
+  /* Only apply scrolling on desktop */
+  @media (min-width: 1024px) {
+    .text-scroll-container {
+      overflow: hidden;
+      max-width: 100%;
+    }
+  }
+  
+  /* Don't scroll on mobile */
+  @media (max-width: 1023px) {
+    .text-scroll {
+      animation: none;
+      padding-left: 0;
+    }
+  }
 }
 
 @keyframes fadeIn {
@@ -129,5 +153,15 @@
   to { 
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Animation for scrolling text */
+@keyframes textScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-200%); /* Adjust this value based on text length */
   }
 }
