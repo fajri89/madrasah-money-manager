@@ -33,12 +33,13 @@ const DepartmentDataTable = () => {
     }
   });
   
-  // Fetch departments data
+  // Fetch departments data using the updated API
   useEffect(() => {
     const fetchDepartments = async () => {
       setIsLoading(true);
       try {
-        const data = await Promise.resolve(api.jurusan);
+        // Use the new getJurusan function instead of direct access
+        const data = await api.getJurusan();
         setDepartments(data);
       } catch (error) {
         console.error("Error fetching departments:", error);
@@ -73,7 +74,7 @@ const DepartmentDataTable = () => {
       const updatedDepartments = departments.filter(d => d.id !== id);
       
       try {
-        // Save to API/localStorage
+        // Save to Supabase using the updated API
         await api.saveJurusan(updatedDepartments);
         setDepartments(updatedDepartments);
         toast.success("Jurusan berhasil dihapus");
@@ -104,7 +105,7 @@ const DepartmentDataTable = () => {
     }
     
     try {
-      // Save to API/localStorage
+      // Save to Supabase using the updated API
       await api.saveJurusan(updatedDepartments);
       setDepartments(updatedDepartments);
     } catch (error) {

@@ -33,12 +33,13 @@ const ClassDataTable = () => {
     }
   });
   
-  // Fetch classes data
+  // Fetch classes data using the updated API
   useEffect(() => {
     const fetchClasses = async () => {
       setIsLoading(true);
       try {
-        const data = await Promise.resolve(api.kelas);
+        // Use the new getKelas function instead of direct access
+        const data = await api.getKelas();
         setClasses(data);
       } catch (error) {
         console.error("Error fetching classes:", error);
@@ -73,7 +74,7 @@ const ClassDataTable = () => {
       const updatedClasses = classes.filter(c => c.id !== id);
       
       try {
-        // Save to API/localStorage
+        // Save to Supabase using the updated API
         await api.saveKelas(updatedClasses);
         setClasses(updatedClasses);
         toast.success("Kelas berhasil dihapus");
@@ -104,7 +105,7 @@ const ClassDataTable = () => {
     }
     
     try {
-      // Save to API/localStorage
+      // Save to Supabase using the updated API
       await api.saveKelas(updatedClasses);
       setClasses(updatedClasses);
     } catch (error) {

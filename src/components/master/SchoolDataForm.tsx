@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
 interface SchoolFormData {
-  id?: number; // Make id optional as it might not exist when creating new school data
+  id?: number;
   nama: string;
   alamat: string;
   telepon: string;
@@ -22,11 +22,12 @@ const SchoolDataForm = () => {
   
   const { register, handleSubmit, reset, formState: { errors } } = useForm<SchoolFormData>();
   
-  // Fetch school data
+  // Fetch school data from Supabase
   useEffect(() => {
     const fetchSchoolData = async () => {
       setIsLoading(true);
       try {
+        // Use the updated API function
         const data = await api.getSekolahInfo();
         setSchoolData(data);
         // Set form values
@@ -52,7 +53,7 @@ const SchoolDataForm = () => {
     setIsLoading(true);
     
     try {
-      // Save to API/localStorage
+      // Save to Supabase using the updated API
       await api.saveSekolahInfo({
         ...schoolData,
         ...data,

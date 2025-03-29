@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Edit, Trash2, Plus, Search, Upload } from "lucide-react";
@@ -46,14 +47,15 @@ const StudentDataTable = () => {
     }
   });
   
-  // Fetch students, classes, and departments data
+  // Fetch students, classes, and departments data from Supabase
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Use updated API functions that get data from Supabase
         const studentsData = await api.getSiswa();
-        const classesData = await Promise.resolve(api.kelas);
-        const departmentsData = await Promise.resolve(api.jurusan);
+        const classesData = await api.getKelas(); // Use new function
+        const departmentsData = await api.getJurusan(); // Use new function
         
         setStudents(studentsData);
         setClasses(classesData);

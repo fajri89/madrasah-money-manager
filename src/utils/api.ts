@@ -1,21 +1,21 @@
-
 // This is a placeholder for the actual API integration
 // In a real implementation, this would connect to PHP backend endpoints
 import { sendWhatsAppNotification } from "./whatsAppIntegration";
 import * as XLSX from 'xlsx';
+import { supabase } from "@/integrations/supabase/client";
 
-// Get data from localStorage or use defaults
+// Get data from localStorage or use defaults if no data in Supabase yet
 const getLocalStorage = <T>(key: string, defaultValue: T): T => {
   const storedData = localStorage.getItem(key);
   return storedData ? JSON.parse(storedData) : defaultValue;
 };
 
-// Save data to localStorage
+// Save data to localStorage (Kept for backward compatibility)
 const saveToLocalStorage = <T>(key: string, data: T): void => {
   localStorage.setItem(key, JSON.stringify(data));
 };
 
-// Simulated database structure that would be on the PHP/MySQL backend
+// Database structure interface
 export interface DatabaseStructure {
   sekolah: {
     id: number;
@@ -74,7 +74,7 @@ export interface DatabaseStructure {
   }[];
 }
 
-// Default data to use if nothing in localStorage
+// Default data to use if nothing in localStorage or database
 const defaultData: DatabaseStructure = {
   sekolah: [
     {
@@ -194,6 +194,7 @@ const defaultData: DatabaseStructure = {
 };
 
 // Initialize database from localStorage or defaults
+// (This will be used as fallback if Supabase is unreachable)
 const dummyData: DatabaseStructure = {
   sekolah: getLocalStorage('sekolah', defaultData.sekolah),
   siswa: getLocalStorage('siswa', defaultData.siswa),
@@ -288,11 +289,11 @@ export const getMonthlySummary = async () => {
   };
 };
 
-// Simulated API functions that would connect to PHP backend
+// Modified API functions to use Supabase
 export const api = {
   // Auth functions
   login: async (username: string, password: string) => {
-    // This would be a POST request to PHP backend
+    // Keep the dummy authentication logic as we're not using Supabase Auth yet
     console.log("Login request", { username, password });
     const user = dummyData.pengguna.find(
       (u) => u.username === username && u.password === password
@@ -305,7 +306,7 @@ export const api = {
 
   // User management functions
   updateUsername: async (userId: number, newUsername: string) => {
-    // In a real implementation, this would be a PUT request to update the user
+    // Keep existing user management logic
     console.log("Update username request", { userId, newUsername });
     
     // Check if username already exists
@@ -331,7 +332,7 @@ export const api = {
   },
   
   updatePassword: async (userId: number, oldPassword: string, newPassword: string) => {
-    // In a real implementation, this would be a PUT request to update the password
+    // Keep existing password update logic
     console.log("Update password request", { userId, oldPassword: "***", newPassword: "***" });
     
     // Find the user and verify old password
@@ -349,9 +350,8 @@ export const api = {
     return { success: true, message: "Password berhasil diubah" };
   },
 
-  // Financial functions
+  // Financial functions - keeping localStorage for now as we're focusing on master data
   getPemasukan: async () => {
-    // This would fetch data from PHP backend
     return dummyData.pemasukan;
   },
   
@@ -363,48 +363,266 @@ export const api = {
     return dummyData.spp;
   },
   
-  // Student functions
+  // UPDATED: Student functions to use Supabase
   getSiswa: async () => {
-    return dummyData.siswa;
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('siswa')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.siswa;
+      }
+      
+      // If successful, also update localStorage as a backup
+      if (data) {
+        saveToLocalStorage('siswa', data);
+        return data;
+      }
+      
+      return dummyData.siswa;
+    } catch (error) {
+      console.error("Error in getSiswa:", error);
+      return dummyData.siswa;
+    }
   },
   
   saveSiswa: async (students: Student[]) => {
-    dummyData.siswa = students;
-    saveToLocalStorage('siswa', students);
-    return { success: true, message: "Data siswa berhasil disimpan" };
+    try {
+      // First delete all existing data to avoid duplicates
+      const { error: deleteError } = await supabase
+        .from('siswa')
+        .delete()
+        .neq('id', 0); // Delete all rows
+      
+      if (deleteError) {
+        console.error("Error deleting from Supabase:", deleteError);
+        // Fallback to localStorage
+        saveToLocalStorage('siswa', students);
+        return { success: true, message: "Data siswa berhasil disimpan (lokal)" };
+      }
+      
+      // Insert new data
+      const { error: insertError } = await supabase
+        .from('siswa')
+        .insert(students);
+      
+      if (insertError) {
+        console.error("Error inserting to Supabase:", insertError);
+        // Fallback to localStorage
+        saveToLocalStorage('siswa', students);
+        return { success: true, message: "Data siswa berhasil disimpan (lokal)" };
+      }
+      
+      // Update localStorage as backup
+      saveToLocalStorage('siswa', students);
+      return { success: true, message: "Data siswa berhasil disimpan" };
+    } catch (error) {
+      console.error("Error in saveSiswa:", error);
+      // Fallback to localStorage
+      saveToLocalStorage('siswa', students);
+      return { success: true, message: "Data siswa berhasil disimpan (lokal)" };
+    }
   },
   
-  // School info
+  // UPDATED: School info to use Supabase
   getSekolahInfo: async () => {
-    return dummyData.sekolah[0];
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('sekolah')
+        .select('*')
+        .eq('id', 1)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching school from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.sekolah[0];
+      }
+      
+      // If successful, also update localStorage as a backup
+      if (data) {
+        saveToLocalStorage('sekolah', [data]);
+        return data;
+      }
+      
+      return dummyData.sekolah[0];
+    } catch (error) {
+      console.error("Error in getSekolahInfo:", error);
+      return dummyData.sekolah[0];
+    }
   },
   
   saveSekolahInfo: async (data: DatabaseStructure['sekolah'][0]) => {
-    dummyData.sekolah[0] = data;
-    saveToLocalStorage('sekolah', dummyData.sekolah);
-    return { success: true, message: "Data sekolah berhasil disimpan" };
+    try {
+      // Upsert school data
+      const { error } = await supabase
+        .from('sekolah')
+        .upsert({ ...data, id: 1 }); // Always use id 1
+      
+      if (error) {
+        console.error("Error saving school to Supabase:", error);
+        // Fallback to localStorage
+        dummyData.sekolah[0] = data;
+        saveToLocalStorage('sekolah', dummyData.sekolah);
+        return { success: true, message: "Data sekolah berhasil disimpan (lokal)" };
+      }
+      
+      // Update localStorage as backup
+      dummyData.sekolah[0] = data;
+      saveToLocalStorage('sekolah', dummyData.sekolah);
+      return { success: true, message: "Data sekolah berhasil disimpan" };
+    } catch (error) {
+      console.error("Error in saveSekolahInfo:", error);
+      // Fallback to localStorage
+      dummyData.sekolah[0] = data;
+      saveToLocalStorage('sekolah', dummyData.sekolah);
+      return { success: true, message: "Data sekolah berhasil disimpan (lokal)" };
+    }
   },
   
-  // Class (Kelas) functions
+  // UPDATED: Class (Kelas) functions to use Supabase
   saveKelas: async (classes: DatabaseStructure['kelas']) => {
-    dummyData.kelas = classes;
-    saveToLocalStorage('kelas', classes);
-    return { success: true, message: "Data kelas berhasil disimpan" };
+    try {
+      // First delete all existing data
+      const { error: deleteError } = await supabase
+        .from('kelas')
+        .delete()
+        .neq('id', 0); // Delete all rows
+      
+      if (deleteError) {
+        console.error("Error deleting classes from Supabase:", deleteError);
+        // Fallback to localStorage
+        saveToLocalStorage('kelas', classes);
+        return { success: true, message: "Data kelas berhasil disimpan (lokal)" };
+      }
+      
+      // Insert new data
+      const { error: insertError } = await supabase
+        .from('kelas')
+        .insert(classes);
+      
+      if (insertError) {
+        console.error("Error inserting classes to Supabase:", insertError);
+        // Fallback to localStorage
+        saveToLocalStorage('kelas', classes);
+        return { success: true, message: "Data kelas berhasil disimpan (lokal)" };
+      }
+      
+      // Update localStorage as backup
+      saveToLocalStorage('kelas', classes);
+      return { success: true, message: "Data kelas berhasil disimpan" };
+    } catch (error) {
+      console.error("Error in saveKelas:", error);
+      // Fallback to localStorage
+      saveToLocalStorage('kelas', classes);
+      return { success: true, message: "Data kelas berhasil disimpan (lokal)" };
+    }
   },
   
-  // Department (Jurusan) functions
+  // UPDATED: Department (Jurusan) functions to use Supabase
   saveJurusan: async (departments: DatabaseStructure['jurusan']) => {
-    dummyData.jurusan = departments;
-    saveToLocalStorage('jurusan', departments);
-    return { success: true, message: "Data jurusan berhasil disimpan" };
+    try {
+      // First delete all existing data
+      const { error: deleteError } = await supabase
+        .from('jurusan')
+        .delete()
+        .neq('id', 0); // Delete all rows
+      
+      if (deleteError) {
+        console.error("Error deleting departments from Supabase:", deleteError);
+        // Fallback to localStorage
+        saveToLocalStorage('jurusan', departments);
+        return { success: true, message: "Data jurusan berhasil disimpan (lokal)" };
+      }
+      
+      // Insert new data
+      const { error: insertError } = await supabase
+        .from('jurusan')
+        .insert(departments);
+      
+      if (insertError) {
+        console.error("Error inserting departments to Supabase:", insertError);
+        // Fallback to localStorage
+        saveToLocalStorage('jurusan', departments);
+        return { success: true, message: "Data jurusan berhasil disimpan (lokal)" };
+      }
+      
+      // Update localStorage as backup
+      saveToLocalStorage('jurusan', departments);
+      return { success: true, message: "Data jurusan berhasil disimpan" };
+    } catch (error) {
+      console.error("Error in saveJurusan:", error);
+      // Fallback to localStorage
+      saveToLocalStorage('jurusan', departments);
+      return { success: true, message: "Data jurusan berhasil disimpan (lokal)" };
+    }
+  },
+
+  // UPDATED: Get kelas from Supabase instead of direct access
+  getKelas: async () => {
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('kelas')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching classes from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.kelas;
+      }
+      
+      // If successful, also update localStorage as a backup
+      if (data) {
+        saveToLocalStorage('kelas', data);
+        return data;
+      }
+      
+      return dummyData.kelas;
+    } catch (error) {
+      console.error("Error in getKelas:", error);
+      return dummyData.kelas;
+    }
+  },
+
+  // UPDATED: Get jurusan from Supabase instead of direct access
+  getJurusan: async () => {
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('jurusan')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching departments from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.jurusan;
+      }
+      
+      // If successful, also update localStorage as a backup
+      if (data) {
+        saveToLocalStorage('jurusan', data);
+        return data;
+      }
+      
+      return dummyData.jurusan;
+    } catch (error) {
+      console.error("Error in getJurusan:", error);
+      return dummyData.jurusan;
+    }
   },
   
-  // Excel import function
+  // UPDATED: Excel import function to use Supabase
   importExcel: async (file: File): Promise<{success: boolean; message: string; data?: Student[]}> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
@@ -452,16 +670,50 @@ export const api = {
             return;
           }
           
-          // Add to existing students
-          const updatedStudents = [...dummyData.siswa, ...students];
-          dummyData.siswa = updatedStudents;
-          saveToLocalStorage('siswa', updatedStudents);
-          
-          resolve({ 
-            success: true, 
-            message: `${students.length} data siswa berhasil diimpor`, 
-            data: students 
-          });
+          try {
+            // Save to Supabase
+            const { error } = await supabase
+              .from('siswa')
+              .insert(students);
+            
+            if (error) {
+              console.error("Error importing data to Supabase:", error);
+              // Fallback to localStorage
+              const updatedStudents = [...dummyData.siswa, ...students];
+              dummyData.siswa = updatedStudents;
+              saveToLocalStorage('siswa', updatedStudents);
+              
+              resolve({ 
+                success: true, 
+                message: `${students.length} data siswa berhasil diimpor (lokal)`, 
+                data: students 
+              });
+              return;
+            }
+            
+            // Update localStorage as backup
+            const updatedStudents = [...dummyData.siswa, ...students];
+            dummyData.siswa = updatedStudents;
+            saveToLocalStorage('siswa', updatedStudents);
+            
+            resolve({ 
+              success: true, 
+              message: `${students.length} data siswa berhasil diimpor`, 
+              data: students 
+            });
+          } catch (error) {
+            console.error("Error saving imported data:", error);
+            // Fallback to localStorage
+            const updatedStudents = [...dummyData.siswa, ...students];
+            dummyData.siswa = updatedStudents;
+            saveToLocalStorage('siswa', updatedStudents);
+            
+            resolve({ 
+              success: true, 
+              message: `${students.length} data siswa berhasil diimpor (lokal)`, 
+              data: students 
+            });
+          }
         } catch (error) {
           console.error("Error parsing Excel:", error);
           resolve({ success: false, message: "Format file tidak valid" });
@@ -482,7 +734,7 @@ export const api = {
     return sendWhatsAppNotification(phoneNumber, message);
   },
 
-  // Direct access to the data (for simplicity in this demo)
+  // Direct access to the data (for backward compatibility)
   kelas: dummyData.kelas,
   jurusan: dummyData.jurusan,
   pengguna: dummyData.pengguna
