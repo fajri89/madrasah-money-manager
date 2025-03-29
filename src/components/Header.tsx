@@ -32,6 +32,11 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
     };
   }, []);
 
+  // Don't render the header at all on the login page
+  if (isLoginPage) {
+    return null;
+  }
+
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 py-3 transition-all duration-300 ${
@@ -67,21 +72,7 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
         </div>
         
         <div className="flex items-center">
-          {isAuthenticated ? (
-            <UserProfile />
-          ) : (
-            // Only show the Login button if not on the login page
-            !isLoginPage && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/login')}
-                className="text-green-700 border-green-700 hover:bg-green-50"
-              >
-                Login
-              </Button>
-            )
-          )}
+          {isAuthenticated && <UserProfile />}
         </div>
       </div>
     </header>
