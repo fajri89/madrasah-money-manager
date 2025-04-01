@@ -52,10 +52,14 @@ const StudentPaymentHistory = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        console.log("Fetching SPP and student data...");
         const [paymentsData, studentsData] = await Promise.all([
           api.getSpp(),
           api.getSiswa()
         ]);
+
+        console.log("Received SPP data:", paymentsData);
+        console.log("Received student data:", studentsData);
 
         setPayments(paymentsData);
         setStudents(studentsData);
@@ -114,6 +118,11 @@ const StudentPaymentHistory = () => {
     setSelectedYear(value);
   };
 
+  // Function to handle the display button click
+  const handleDisplayClick = () => {
+    updateMonthlyTotal(payments, selectedMonth, selectedYear);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -162,7 +171,7 @@ const StudentPaymentHistory = () => {
             </div>
             
             <div className="flex items-end">
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleDisplayClick}>
                 Tampilkan
               </Button>
             </div>

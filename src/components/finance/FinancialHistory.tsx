@@ -16,40 +16,45 @@ const FinancialHistory = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "masuk" | "keluar">("all");
 
+  // Add key to refetch data when component remounts
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Fetch both income and expense data from Supabase
+      const [pemasukan, pengeluaran] = await Promise.all([
+        api.getPemasukan(),
+        api.getPengeluaran(),
+      ]);
+
+      console.log("Fetched pemasukan data:", pemasukan);
+      console.log("Fetched pengeluaran data:", pengeluaran);
+
+      // Format the data with type indicators
+      const pemasukanWithType = pemasukan.map((item) => ({
+        ...item,
+        type: "masuk" as const,
+      }));
+
+      const pengeluaranWithType = pengeluaran.map((item) => ({
+        ...item,
+        type: "keluar" as const,
+      }));
+
+      // Combine, sort by date (newest first)
+      const combined = [...pemasukanWithType, ...pengeluaranWithType].sort(
+        (a, b) =>
+          new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+      );
+
+      setTransactions(combined);
+    } catch (error) {
+      console.error("Error fetching transaction data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch both income and expense data from Supabase
-        const [pemasukan, pengeluaran] = await Promise.all([
-          api.getPemasukan(),
-          api.getPengeluaran(),
-        ]);
-
-        // Format the data with type indicators
-        const pemasukanWithType = pemasukan.map((item) => ({
-          ...item,
-          type: "masuk" as const,
-        }));
-
-        const pengeluaranWithType = pengeluaran.map((item) => ({
-          ...item,
-          type: "keluar" as const,
-        }));
-
-        // Combine, sort by date (newest first)
-        const combined = [...pemasukanWithType, ...pengeluaranWithType].sort(
-          (a, b) =>
-            new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
-        );
-
-        setTransactions(combined);
-      } catch (error) {
-        console.error("Error fetching transaction data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
 

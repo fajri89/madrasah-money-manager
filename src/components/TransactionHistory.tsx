@@ -18,10 +18,17 @@ const TransactionHistory = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Clear existing data before fetching
+        setTransactions([]);
+        setLoading(true);
+        
         const [pemasukan, pengeluaran] = await Promise.all([
           api.getPemasukan(),
           api.getPengeluaran()
         ]);
+        
+        console.log("Dashboard TransactionHistory - Pemasukan:", pemasukan);
+        console.log("Dashboard TransactionHistory - Pengeluaran:", pengeluaran);
         
         // Format the data with type indicators
         const pemasukanWithType = pemasukan.map(item => ({

@@ -13,7 +13,7 @@ const ProtectedRoute = ({ allowedRoles = [] }: ProtectedRouteProps) => {
     isAuthenticated: false,
     loading: true,
     user: null,
-    hasPermission: () => false
+    hasPermission: (roles: string[]) => false
   };
   
   try {
