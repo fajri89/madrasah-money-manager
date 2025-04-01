@@ -8,8 +8,20 @@ import { LogOut, User, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const UserProfile = () => {
-  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Safe access to auth context
+  let user = null;
+  let logout = () => {};
+  
+  try {
+    const auth = useAuth();
+    user = auth.user;
+    logout = auth.logout;
+  } catch (error) {
+    console.error("Auth context not available:", error);
+    return null; // Don't render anything if auth context is not available
+  }
 
   if (!user) {
     return null;

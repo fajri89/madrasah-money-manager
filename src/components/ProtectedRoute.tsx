@@ -9,7 +9,22 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ allowedRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, hasPermission, loading, user } = useAuth();
+  let auth = {
+    isAuthenticated: false,
+    loading: true,
+    user: null,
+    hasPermission: () => false
+  };
+  
+  try {
+    auth = useAuth();
+  } catch (error) {
+    console.error("Auth context not available:", error);
+    // If auth context is not available, navigate to login
+    return <Navigate to="/login" replace />;
+  }
+  
+  const { isAuthenticated, hasPermission, loading, user } = auth;
 
   useEffect(() => {
     // Show a toast message if user doesn't have permission to view this page

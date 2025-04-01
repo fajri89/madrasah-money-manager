@@ -12,9 +12,8 @@ interface HeaderProps {
 
 const Header = ({ onMenuToggle }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Check if current route is login page
   const isLoginPage = location.pathname === '/login';
@@ -35,6 +34,16 @@ const Header = ({ onMenuToggle }: HeaderProps) => {
   // Don't render the header at all on the login page
   if (isLoginPage) {
     return null;
+  }
+
+  // Safe access to auth context
+  let isAuthenticated = false;
+  try {
+    const { isAuthenticated: authState } = useAuth();
+    isAuthenticated = authState;
+  } catch (error) {
+    console.error("Auth context not available:", error);
+    // If auth context is not available, we'll default to false
   }
 
   return (
