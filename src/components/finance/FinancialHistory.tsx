@@ -19,6 +19,7 @@ const FinancialHistory = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch both income and expense data from Supabase
         const [pemasukan, pengeluaran] = await Promise.all([
           api.getPemasukan(),
           api.getPengeluaran(),
