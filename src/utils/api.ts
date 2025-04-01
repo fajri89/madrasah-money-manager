@@ -117,14 +117,14 @@ const defaultData: DatabaseStructure = {
   pemasukan: [
     {
       id: 1,
-      tanggal: "2023-01-01",
+      tanggal: "2025-01-01",
       jumlah: 5000000,
       keterangan: "Bantuan operasional sekolah",
       pengguna_id: 1
     },
     {
       id: 2,
-      tanggal: "2023-01-15",
+      tanggal: "2025-01-15",
       jumlah: 2500000,
       keterangan: "Pembayaran SPP",
       pengguna_id: 1
@@ -133,14 +133,14 @@ const defaultData: DatabaseStructure = {
   pengeluaran: [
     {
       id: 1,
-      tanggal: "2023-01-05",
+      tanggal: "2025-01-05",
       jumlah: 1000000,
       keterangan: "Pembayaran listrik",
       pengguna_id: 1
     },
     {
       id: 2,
-      tanggal: "2023-01-10",
+      tanggal: "2025-01-10",
       jumlah: 1500000,
       keterangan: "Pembelian alat tulis",
       pengguna_id: 1
@@ -150,9 +150,9 @@ const defaultData: DatabaseStructure = {
     {
       id: 1,
       siswa_id: 1,
-      tanggal: "2023-01-10",
+      tanggal: "2025-01-10",
       bulan: "Januari",
-      tahun: "2023",
+      tahun: "2025",
       jumlah: 250000,
       status: "Lunas",
       pengguna_id: 1
@@ -160,9 +160,9 @@ const defaultData: DatabaseStructure = {
     {
       id: 2,
       siswa_id: 2,
-      tanggal: "2023-01-15",
+      tanggal: "2025-01-15",
       bulan: "Januari",
-      tahun: "2023",
+      tahun: "2025",
       jumlah: 250000,
       status: "Lunas",
       pengguna_id: 1
@@ -236,6 +236,36 @@ export interface SppData {
   pengguna_id: number;
 }
 
+// Configuration for admin settings
+export interface AdminSettings {
+  headmasterPhone: string; // Phone number for the headmaster for notifications
+  enableWhatsAppNotifications: boolean;
+}
+
+// Default admin settings
+const defaultAdminSettings: AdminSettings = {
+  headmasterPhone: "081234567890",
+  enableWhatsAppNotifications: true
+};
+
+// Get admin settings
+export const getAdminSettings = (): AdminSettings => {
+  const storedSettings = localStorage.getItem('adminSettings');
+  return storedSettings ? JSON.parse(storedSettings) : defaultAdminSettings;
+};
+
+// Save admin settings
+export const saveAdminSettings = (settings: AdminSettings): void => {
+  localStorage.setItem('adminSettings', JSON.stringify(settings));
+};
+
+// Function to get years array (2025-2030)
+export const getYears = (): string[] => {
+  const startYear = 2025;
+  const endYear = 2030;
+  return Array.from({length: endYear - startYear + 1}, (_, i) => (startYear + i).toString());
+};
+
 // Function to get monthly financial data for charts
 export const getMonthlySummary = async () => {
   // This would be a GET request to PHP backend
@@ -287,6 +317,104 @@ export const getMonthlySummary = async () => {
     expenses: monthlyExpenses,
     spp: monthlySppPayments
   };
+};
+
+// Fixed function for saving pemasukan with WhatsApp notification
+export const savePemasukan = async (data: FinancialData) => {
+  try {
+    // Try to save to Supabase first
+    const formattedData = {
+      ...data,
+      id: data.id || Date.now() // Use existing ID or generate a new one
+    };
+    
+    const result = await supabase
+      .from('pemasukan')
+      .insert(formattedData);
+    
+    if (result.error) {
+      console.error("Error saving to Supabase:", result.error);
+      
+      // Fallback to localStorage if Supabase fails
+      const existingData = dummyData.pemasukan;
+      const newData = [...existingData, formattedData];
+      dummyData.pemasukan = newData;
+      saveToLocalStorage('pemasukan', newData);
+    }
+    
+    // Send WhatsApp notification to headmaster regardless of storage method
+    try {
+      const settings = getAdminSettings();
+      
+      if (settings.enableWhatsAppNotifications && settings.headmasterPhone) {
+        const formattedDate = formatDate(data.tanggal);
+        const message = createNotificationMessages.income(
+          data.jumlah,
+          data.keterangan,
+          formattedDate
+        ).toHeadmaster;
+        
+        await sendWhatsAppNotification(settings.headmasterPhone, message);
+      }
+    } catch (notifError) {
+      console.error("Error sending WhatsApp notification:", notifError);
+      // Don't fail the main operation if notification fails
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error in savePemasukan:", error);
+    return { success: false, error };
+  }
+};
+
+// Fixed function for saving pengeluaran with WhatsApp notification
+export const savePengeluaran = async (data: FinancialData) => {
+  try {
+    // Try to save to Supabase first
+    const formattedData = {
+      ...data,
+      id: data.id || Date.now() // Use existing ID or generate a new one
+    };
+    
+    const result = await supabase
+      .from('pengeluaran')
+      .insert(formattedData);
+    
+    if (result.error) {
+      console.error("Error saving to Supabase:", result.error);
+      
+      // Fallback to localStorage if Supabase fails
+      const existingData = dummyData.pengeluaran;
+      const newData = [...existingData, formattedData];
+      dummyData.pengeluaran = newData;
+      saveToLocalStorage('pengeluaran', newData);
+    }
+    
+    // Send WhatsApp notification to headmaster regardless of storage method
+    try {
+      const settings = getAdminSettings();
+      
+      if (settings.enableWhatsAppNotifications && settings.headmasterPhone) {
+        const formattedDate = formatDate(data.tanggal);
+        const message = createNotificationMessages.expense(
+          data.jumlah,
+          data.keterangan,
+          formattedDate
+        ).toHeadmaster;
+        
+        await sendWhatsAppNotification(settings.headmasterPhone, message);
+      }
+    } catch (notifError) {
+      console.error("Error sending WhatsApp notification:", notifError);
+      // Don't fail the main operation if notification fails
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error in savePengeluaran:", error);
+    return { success: false, error };
+  }
 };
 
 // Modified API functions to use Supabase
@@ -350,17 +478,192 @@ export const api = {
     return { success: true, message: "Password berhasil diubah" };
   },
 
-  // Financial functions - keeping localStorage for now as we're focusing on master data
+  // Financial functions - updated to use Supabase with localStorage fallback
   getPemasukan: async () => {
-    return dummyData.pemasukan;
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('pemasukan')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching income from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.pemasukan;
+      }
+      
+      // If successful, also update localStorage as a backup
+      if (data) {
+        saveToLocalStorage('pemasukan', data);
+        return data;
+      }
+      
+      return dummyData.pemasukan;
+    } catch (error) {
+      console.error("Error in getPemasukan:", error);
+      return dummyData.pemasukan;
+    }
   },
   
   getPengeluaran: async () => {
-    return dummyData.pengeluaran;
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('pengeluaran')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching expenses from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.pengeluaran;
+      }
+      
+      // If successful, also update localStorage as a backup
+      if (data) {
+        saveToLocalStorage('pengeluaran', data);
+        return data;
+      }
+      
+      return dummyData.pengeluaran;
+    } catch (error) {
+      console.error("Error in getPengeluaran:", error);
+      return dummyData.pengeluaran;
+    }
   },
   
   getSpp: async () => {
-    return dummyData.spp;
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('spp')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching SPP from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.spp;
+      }
+      
+      // If successful, also update localStorage as a backup
+      if (data) {
+        saveToLocalStorage('spp', data);
+        return data;
+      }
+      
+      return dummyData.spp;
+    } catch (error) {
+      console.error("Error in getSpp:", error);
+      return dummyData.spp;
+    }
+  },
+
+  // Save SPP data with WhatsApp notification
+  saveSpp: async (data: SppData) => {
+    try {
+      // Try to save to Supabase first
+      const formattedData = {
+        ...data,
+        id: data.id || Date.now() // Use existing ID or generate a new one
+      };
+      
+      const result = await supabase
+        .from('spp')
+        .insert(formattedData);
+      
+      if (result.error) {
+        console.error("Error saving SPP to Supabase:", result.error);
+        
+        // Fallback to localStorage if Supabase fails
+        const existingData = dummyData.spp;
+        const newData = [...existingData, formattedData];
+        dummyData.spp = newData;
+        saveToLocalStorage('spp', newData);
+      }
+      
+      // Send WhatsApp notifications regardless of storage method
+      try {
+        // Get student details for the notification
+        const student = await api.getSiswaById(data.siswa_id);
+        
+        if (student) {
+          const settings = getAdminSettings();
+          const formattedDate = formatDate(data.tanggal);
+          
+          // Send notification to headmaster
+          if (settings.enableWhatsAppNotifications && settings.headmasterPhone) {
+            const headmasterMessage = createNotificationMessages.sppPayment(
+              student.nama,
+              data.bulan,
+              data.tahun,
+              data.jumlah,
+              formattedDate
+            ).toHeadmaster;
+            
+            await sendWhatsAppNotification(settings.headmasterPhone, headmasterMessage);
+          }
+          
+          // Send notification to student/parent if phone number exists
+          if (settings.enableWhatsAppNotifications && student.telepon) {
+            const parentMessage = createNotificationMessages.sppPayment(
+              student.nama,
+              data.bulan,
+              data.tahun,
+              data.jumlah,
+              formattedDate
+            ).toParent;
+            
+            await sendWhatsAppNotification(student.telepon, parentMessage);
+          }
+        }
+      } catch (notifError) {
+        console.error("Error sending WhatsApp notification:", notifError);
+        // Don't fail the main operation if notification fails
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Error in saveSpp:", error);
+      return { success: false, error };
+    }
+  },
+  
+  // Get monthly SPP summary
+  getSppMonthly: async (month: string, year: string) => {
+    try {
+      const allSpp = await api.getSpp();
+      
+      // Filter by month and year
+      const filteredSpp = allSpp.filter(spp => 
+        spp.bulan === month && spp.tahun === year && spp.status === "Lunas"
+      );
+      
+      // Get student details for each payment
+      const students = await api.getSiswa();
+      
+      const paymentsWithStudentDetails = await Promise.all(
+        filteredSpp.map(async (payment) => {
+          const student = students.find(s => s.id === payment.siswa_id);
+          return {
+            ...payment,
+            studentName: student?.nama || "Unknown",
+            studentNIS: student?.nis || "N/A",
+            classId: student?.kelas_id
+          };
+        })
+      );
+      
+      // Calculate total amount
+      const totalAmount = filteredSpp.reduce((sum, payment) => sum + payment.jumlah, 0);
+      
+      return {
+        payments: paymentsWithStudentDetails,
+        totalAmount,
+        count: filteredSpp.length
+      };
+    } catch (error) {
+      console.error("Error getting monthly SPP summary:", error);
+      return { payments: [], totalAmount: 0, count: 0 };
+    }
   },
   
   // UPDATED: Student functions to use Supabase
@@ -387,6 +690,28 @@ export const api = {
     } catch (error) {
       console.error("Error in getSiswa:", error);
       return dummyData.siswa;
+    }
+  },
+  
+  getSiswaById: async (id: number) => {
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('siswa')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching student from Supabase:", error);
+        // Fallback to localStorage
+        return dummyData.siswa.find(s => s.id === id);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Error in getSiswaById:", error);
+      return dummyData.siswa.find(s => s.id === id);
     }
   },
   
@@ -758,3 +1083,6 @@ export const formatDate = (dateString: string) => {
     year: 'numeric'
   }).format(date);
 };
+
+// Import from whatsAppIntegration.ts
+import { createNotificationMessages } from "./whatsAppIntegration";

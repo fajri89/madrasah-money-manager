@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CalendarIcon, Send } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { api } from "@/utils/api";
+import { api, getYears } from "@/utils/api";
 import { sendWhatsAppNotification, createNotificationMessages } from "@/utils/whatsAppIntegration";
 
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,7 @@ const StudentPaymentForm = () => {
     defaultValues: {
       siswa_id: "",
       bulan: "",
-      tahun: new Date().getFullYear().toString(),
+      tahun: "2025",
       tanggal: new Date(),
       jumlah: "250000", // Default SPP amount
     },
@@ -117,6 +117,9 @@ const StudentPaymentForm = () => {
     "November",
     "Desember",
   ];
+  
+  // Years array (2025-2030)
+  const years = getYears();
 
   // Handle form submission
   const onSubmit = async (data: FormValues) => {
@@ -141,40 +144,26 @@ const StudentPaymentForm = () => {
       const studentName = student ? student.nama : "Siswa";
       const formattedDate = format(data.tanggal, "dd MMMM yyyy", { locale: id });
 
-      // This would be a POST request to PHP backend in a real implementation
-      // For now, we'll simulate it with our API utility
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
+      // Save the payment data to Supabase
+      const result = await api.saveSpp(sppData);
 
-      // Create notification messages using our utility
-      const messages = createNotificationMessages.sppPayment(
-        studentName,
-        data.bulan,
-        data.tahun,
-        parseInt(data.jumlah),
-        formattedDate
-      );
-      
-      // Send WhatsApp notification to kepala sekolah
-      await sendWhatsAppNotification("081234567890", messages.toHeadmaster);
-      
-      // Send WhatsApp notification to parent if phone number is available
-      if (studentPhone) {
-        await sendWhatsAppNotification(studentPhone, messages.toParent);
+      if (result.success) {
+        // Show success notification
+        toast.success("Pembayaran SPP berhasil disimpan", {
+          description: `${studentName} - ${data.bulan} ${data.tahun}`,
+        });
+
+        // Reset form
+        form.reset({
+          siswa_id: "",
+          bulan: "",
+          tahun: "2025",
+          tanggal: new Date(),
+          jumlah: "250000",
+        });
+      } else {
+        toast.error("Gagal menyimpan pembayaran SPP");
       }
-
-      // Show success notification
-      toast.success("Pembayaran SPP berhasil disimpan", {
-        description: `${studentName} - ${data.bulan} ${data.tahun}`,
-      });
-
-      // Reset form
-      form.reset({
-        siswa_id: "",
-        bulan: "",
-        tahun: new Date().getFullYear().toString(),
-        tanggal: new Date(),
-        jumlah: "250000",
-      });
     } catch (error) {
       console.error("Error saving payment:", error);
       toast.error("Gagal menyimpan pembayaran");
@@ -257,16 +246,30 @@ const StudentPaymentForm = () => {
                 )}
               />
 
-              {/* Year Input */}
+              {/* Year Input - Updated to use dropdown with years 2025-2030 */}
               <FormField
                 control={form.control}
                 name="tahun"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tahun</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" min="2000" max="2100" />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih tahun" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

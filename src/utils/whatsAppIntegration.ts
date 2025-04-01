@@ -81,5 +81,10 @@ export const createNotificationMessages = {
   // Payment reminder
   paymentReminder: (studentName: string, month: string, year: string) => ({
     toParent: `*Pengingat Pembayaran SPP*\n\nYth. Wali dari ${studentName}\n\nDengan hormat kami mengingatkan bahwa pembayaran SPP untuk bulan ${month} ${year} belum kami terima. Mohon segera melakukan pembayaran.\n\nTerima kasih.\n\nHormat kami,\nBendahara Madrasah At-Tahzib Kekait`
+  }),
+
+  // Monthly report
+  monthlyReport: (month: string, year: string, sppTotal: number, incomeTotal: number, expenseTotal: number) => ({
+    toHeadmaster: `*Laporan Bulanan Madrasah At-Tahzib Kekait*\n\nPeriode: ${month} ${year}\n\n1. Total SPP terkumpul: Rp${sppTotal.toLocaleString('id-ID')}\n2. Total Penerimaan: Rp${incomeTotal.toLocaleString('id-ID')}\n3. Total Pengeluaran: Rp${expenseTotal.toLocaleString('id-ID')}\n4. Saldo: Rp${(incomeTotal - expenseTotal).toLocaleString('id-ID')}\n\nLaporan ini digenerate otomatis oleh sistem. Untuk detail lebih lanjut, silakan cek aplikasi manajemen sekolah.`
   })
 };

@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { api, formatRupiah, formatDate } from "@/utils/api";
+import { api, formatRupiah, formatDate, getYears } from "@/utils/api";
 import { Download, FileSpreadsheet, FileText, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -20,7 +21,7 @@ interface SppReportProps {
 const SppReport = ({ isReadOnly }: SppReportProps) => {
   // State for filtering
   const [month, setMonth] = useState<string>(new Date().toLocaleString('id-ID', { month: 'long' }));
-  const [year, setYear] = useState<string>(new Date().getFullYear().toString());
+  const [year, setYear] = useState<string>("2025");
   const [loading, setLoading] = useState<boolean>(false);
   const [sppData, setSppData] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
@@ -32,8 +33,8 @@ const SppReport = ({ isReadOnly }: SppReportProps) => {
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
   
-  // Years for select (last 5 years)
-  const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
+  // Years for select (2025-2030)
+  const years = getYears();
 
   // Load data when component mounts
   useEffect(() => {
